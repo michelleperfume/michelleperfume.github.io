@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Michelle Perfume | Official Store</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <link rel="stylesheet" href="style.css">
 
@@ -40,9 +40,12 @@
         .modal-product-details p { margin-bottom: 4px; color: #555; }
         .modal-product-details span { font-weight: 600; color: #000; }
 
-        .dynamic-price-box { background: #eef2f5; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 15px; margin-top: 15px;}
+        .dynamic-price-box { background: #eef2f5; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 5px; margin-top: 15px;}
         .dynamic-price-box .price-label { font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 1px;}
         .dynamic-price-box .price-value { font-size: 24px; font-weight: 700; color: #000; }
+
+        /* 🌟 Ապառիկի նշման ոճը */
+        .credit-hint { font-size: 12px; color: #777777; text-align: center; margin-bottom: 15px; font-weight: 500; display: block; }
 
         .modal-input { width: 100%; padding: 12px; border: 1px solid #EAEAEC; border-radius: 8px; margin-bottom: 15px; font-family: inherit; outline: none; }
         .modal-input:focus { border-color: #000; }
@@ -104,6 +107,8 @@
                     <div class="price-label">Ընդհանուր Արժեքը</div>
                     <span class="price-value" id="detPrice">0</span> <span style="font-weight: 600; color: #000;">AMD</span>
                 </div>
+                <!-- 🌟 Ավելացված տեքստը ընդհանուր արժեքի ներքևում -->
+                <span class="credit-hint">*Գործում է ապառիկի ձևակերպում,մաս-մաս վճարում</span>
             </div>
 
             <input type="text" id="customerName" class="modal-input" placeholder="Ձեր Անունը...">
@@ -200,7 +205,7 @@
                     const mlSelect = document.getElementById('detMlSelect');
                     mlSelect.innerHTML = '';
 
-                    // 🌟 ՓՈՓՈԽՈՒԹՅՈՒՆ: Ցույց ենք տալիս միայն Firebase-ից եկած հստակ չափսերը
+                    // Ցույց ենք տալիս միայն Firebase-ից եկած հստակ չափսերը
                     let optionsArray = prod.sizes && Array.isArray(prod.sizes) ? prod.sizes : [baseMl];
                     
                     // Ապահովության համար սորտավորում ենք, որ ըստ աճման դասավորվեն (30, 45, 100...)
