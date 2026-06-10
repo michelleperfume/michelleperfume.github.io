@@ -24,7 +24,7 @@
         .product-price { font-size: 15px; font-weight: 700; color: #1a1a1a; }
         .card-view-btn { background: #000; color: #fff; border: none; padding: 10px; border-radius: 50px; font-weight: 500; font-size: 13px; width: 100%; margin-top: 10px; }
 
-        /* Order Modal */
+        /* Order & Admin Modal */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 10px; }
         .modal.active { display: flex; }
         .modal-content { background: #fff; padding: 25px; border-radius: 16px; width: 95%; max-width: 440px; position: relative; max-height: 90vh; overflow-y: auto; scrollbar-width: none; }
@@ -54,7 +54,7 @@
     <header class="main-header">
         <div class="container header-flex">
             <button class="burger-menu" id="burgerToggle" aria-label="Menu"><span></span><span></span></button>
-            <div class="logo"><a href="#">Michelle</a></div>
+            <div class="logo"><a href="#javascript:void(0)">Michelle</a></div>
             <nav class="nav-menu desktop-only">
                 <ul><li><a href="#" class="active">Գլխավոր</a></li><li><a href="#catalog">Կատալոգ</a></li></ul>
             </nav>
@@ -112,6 +112,16 @@
         </div>
     </div>
 
+    <div class="modal" id="adminLoginModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeAdminModalBtn">✕</button>
+            <h3 class="modal-title">Մուտք Ադմին Համակարգ</h3>
+            <p style="margin-bottom: 15px; font-size: 14px; color: #666;">Մուտք գործելու համար ներմուծեք գաղտնաբառը։</p>
+            <input type="password" id="adminPassInput" class="modal-input" placeholder="Գաղտնաբառ...">
+            <button id="adminLoginBtn" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Մուտք Գործել</button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -150,7 +160,7 @@
 
         // Load Products
         let selectedProduct = null;
-        let currentPricePerMl = 0; // Պահում ենք 1 մլ-ի արժեքը
+        let currentPricePerMl = 0;
 
         onValue(ref(db, 'products'), (snapshot) => {
             const data = snapshot.val() || {};
@@ -185,30 +195,30 @@
                     // ԳՆԻ ԵՎ ՄԼ-Ի ՀԱՇՎԱՐԿ
                     const baseMl = Number(prod.ml);
                     const basePrice = Number(prod.price);
-                    currentPricePerMl = basePrice / baseMl; // 1 մլ-ի գինը
+                    currentPricePerMl = basePrice / baseMl;
 
                     const mlSelect = document.getElementById('detMlSelect');
                     mlSelect.innerHTML = '';
 
-                    // Ստեղծում ենք 30-ից մինչև 150 ցուցակը (5-ական քայլով)
+                    // 🌟 ՇՏԿՈՒՄ: Ստեղծում ենք տարբերակները և ճիշտ տեղում ավելացնում բազային մլ-ը, որ հերթականությունը չխախտվի
+                    let optionsArray = [];
                     for(let i = 30; i <= 150; i += 5) {
+                        optionsArray.push(i);
+                    }
+                    if (!optionsArray.includes(baseMl)) {
+                        optionsArray.push(baseMl);
+                        optionsArray.sort((a, b) => a - b); // Սորտավորում ըստ աճման
+                    }
+
+                    optionsArray.forEach(ml => {
                         const option = document.createElement('option');
-                        option.value = i;
-                        option.text = `${i} մլ`;
+                        option.value = ml;
+                        option.text = `${ml} մլ`;
                         mlSelect.appendChild(option);
-                    }
+                    });
 
-                    // Եթե ադմինի գրած բազային մլ-ը այս միջակայքում չկա (օր.՝ 20մլ), ավելացնում ենք
-                    if (!Array.from(mlSelect.options).some(opt => Number(opt.value) === baseMl)) {
-                        const baseOpt = document.createElement('option');
-                        baseOpt.value = baseMl; baseOpt.text = `${baseMl} մլ`;
-                        mlSelect.appendChild(baseOpt);
-                    }
-
-                    // Դնում ենք որպես լռելյայն ընտրված այն, ինչ ադմինն է գրել
                     mlSelect.value = baseMl;
                     document.getElementById('detPrice').innerText = basePrice;
-
                     document.getElementById('orderModal').classList.add('active');
                 });
 
@@ -216,16 +226,24 @@
             });
         });
 
-        // ԴԻՆԱՄԻԿ ԳՆԻ ՓՈՓՈԽՈՒԹՅՈՒՆ (երբ հաճախորդը փոխում է select-ը)
+        // ԴԻՆԱՄԻԿ ԳՆԻ ՓՈՓՈԽՈՒԹՅՈՒՆ
         document.getElementById('detMlSelect').addEventListener('change', function() {
             const selectedMl = Number(this.value);
             const calculatedPrice = Math.round(selectedMl * currentPricePerMl);
             document.getElementById('detPrice').innerText = calculatedPrice;
         });
 
-        // Close Modal
-        document.getElementById('closeModal').addEventListener('click', () => {
-            document.getElementById('orderModal').classList.remove('active');
+        // Close Modals
+        const orderModal = document.getElementById('orderModal');
+        const adminModal = document.getElementById('adminLoginModal');
+
+        document.getElementById('closeModal').addEventListener('click', () => orderModal.classList.remove('active'));
+        document.getElementById('closeAdminModalBtn').addEventListener('click', () => adminModal.classList.remove('active'));
+
+        // 🌟 ՇՏԿՈՒՄ: Ֆոնին (դրսից) սեղմելիս փակել պատուհանները
+        window.addEventListener('click', (e) => {
+            if (e.target === orderModal) orderModal.classList.remove('active');
+            if (e.target === adminModal) adminModal.classList.remove('active');
         });
 
         // Submit Order
@@ -234,14 +252,12 @@
             const phone = document.getElementById('customerPhone').value.trim();
 
             if(name && phone && selectedProduct) {
-                // Վերցնում ենք ՀԱՃԱԽՈՐԴԻ ընտրած վերջնական ծավալն ու գինը
                 const finalMl = document.getElementById('detMlSelect').value;
                 const finalPrice = document.getElementById('detPrice').innerText;
                 
                 const currentDate = new Date().toLocaleDateString('hy-AM');
                 const orderItemInfo = `${selectedProduct.brand || ''} ${selectedProduct.title} (${finalMl} մլ) [${selectedProduct.gender || 'Unisex'}]`;
 
-                // Ուղարկում ենք բազա
                 push(ref(db, 'orders'), {
                     name: name,
                     phone: phone,
@@ -252,34 +268,33 @@
                     alert('Ձեր պատվերն ընդունված է։ Շնորհակալություն գնումների համար:');
                     document.getElementById('customerName').value = '';
                     document.getElementById('customerPhone').value = '';
-                    document.getElementById('orderModal').classList.remove('active');
+                    orderModal.classList.remove('active');
                 });
             } else {
                 alert('Խնդրում ենք լրացնել անունը և հեռախոսահամարը։');
             }
         });
 
-// Գտիր քո լոգոն և ավելացրու event listener
-document.querySelector('.logo').addEventListener('click', () => {
-    document.getElementById('adminLoginModal').style.display = 'flex';
-});
+        // 🌟 ՇՏԿՈՒՄ: Ադմին Մոդալի կառավարում
+        document.querySelector('.logo').addEventListener('click', (e) => {
+            e.preventDefault(); // Կանխում է էջի թարմացումը href="#"-ի պատճառով
+            adminModal.classList.add('active');
+        });
 
-// Փակելու ֆունկցիա
-function closeAdminModal() {
-    document.getElementById('adminLoginModal').style.display = 'none';
-}
+        document.getElementById('adminLoginBtn').addEventListener('click', checkAdminPass);
+        // Մուտք նաև Enter սեղմելիս
+        document.getElementById('adminPassInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkAdminPass();
+        });
 
-// Ստուգման ֆունկցիա
-function checkAdminPass() {
-    const pass = document.getElementById('adminPassInput').value;
-    if (pass === "asd777lkj") {
-        window.location.href = "admin.html"; // Տանում է ադմին պանել
-    } else {
-        alert("Սխալ գաղտնաբառ");
-    }
-}
-        
+        function checkAdminPass() {
+            const pass = document.getElementById('adminPassInput').value;
+            if (pass === "asd777lkj") {
+                window.location.href = "admin.html";
+            } else {
+                alert("Սխալ գաղտնաբառ");
+            }
+        }
     </script>
-
 </body>
 </html>
