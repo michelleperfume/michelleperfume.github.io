@@ -258,6 +258,27 @@
                 alert('Խնդրում ենք լրացնել անունը և հեռախոսահամարը։');
             }
         });
+
+// Գտիր քո լոգոն և ավելացրու event listener
+document.querySelector('.logo').addEventListener('click', () => {
+    document.getElementById('adminLoginModal').style.display = 'flex';
+});
+
+// Փակելու ֆունկցիա
+function closeAdminModal() {
+    document.getElementById('adminLoginModal').style.display = 'none';
+}
+
+// Ստուգման ֆունկցիա
+function checkAdminPass() {
+    const pass = document.getElementById('adminPassInput').value;
+    if (pass === "asd777lkj") {
+        window.location.href = "admin.html"; // Տանում է ադմին պանել
+    } else {
+        alert("Սխալ գաղտնաբառ");
+    }
+}
+        
     </script>
     <div id="adminLoginModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
     <div style="background:white; padding:20px; border-radius:10px; text-align:center;">
