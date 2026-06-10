@@ -342,14 +342,17 @@
             });
         }
 
-        // 🌟 ՖՈՒՆԿՑԻԱ: EmailJS-ով նամակի ուղարկում քո ID-ներով
+     // 🌟 ՈՒՂՂՎԱԾ ՖՈՒՆԿՑԻԱ: Նամակի ուղարկում առանց սահմանափակման
         function sendEmailNotification(name, phone, items, total, date) {
             const templateParams = {
                 customer_name: name,
                 customer_phone: phone,
                 order_items: items,
                 total_price: total + " AMD",
-                order_date: date
+                order_date: date,
+                // Ավելացնում ենք default փոփոխականներ, որ սերվերը 422 սխալ չտա
+                to_name: "Admin",
+                from_name: "Michelle Perfume Store"
             };
 
             emailjs.send("service_mktk3ml", "template_5njvwga", templateParams)
