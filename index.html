@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Michelle Perfume | Official Store</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <link rel="stylesheet" href="style.css">
 
@@ -44,12 +44,26 @@
         .dynamic-price-box .price-label { font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 1px;}
         .dynamic-price-box .price-value { font-size: 24px; font-weight: 700; color: #000; }
 
-        /* 🌟 Ապառիկի նշման ոճը */
         .credit-hint { font-size: 12px; color: #777777; text-align: center; margin-bottom: 15px; font-weight: 500; display: block; }
 
         .modal-input { width: 100%; padding: 12px; border: 1px solid #EAEAEC; border-radius: 8px; margin-bottom: 15px; font-family: inherit; outline: none; }
         .modal-input:focus { border-color: #000; }
         select.modal-input { cursor: pointer; font-weight: 600; }
+
+        /* 🌟 Նոր Կոճակների Դասավորվածություն Մոդալում */
+        .modal-action-btns { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-secondary { background: #222; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 14px; width: 100%; cursor: pointer; transition: 0.2s; }
+        .btn-secondary:hover { background: #444; }
+
+        /* 🌟 Զամբյուղի էլեմենտների ոճերը */
+        .cart-items-list { margin-bottom: 20px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+        .cart-item-info { flex-grow: 1; padding-right: 10px; }
+        .cart-item-title { font-weight: 600; color: #000; }
+        .cart-item-meta { font-size: 12px; color: #666; }
+        .cart-item-price { font-weight: 700; color: #000; white-space: nowrap; }
+        .btn-remove-cart { background: none; border: none; color: #ff3b30; cursor: pointer; font-size: 16px; margin-left: 10px; font-weight: bold; }
+        .cart-empty-text { text-align: center; color: #888; padding: 20px 0; font-size: 15px; }
     </style>
 </head>
 <body>
@@ -61,7 +75,7 @@
             <nav class="nav-menu desktop-only">
                 <ul><li><a href="#" class="active">Գլխավոր</a></li><li><a href="#catalog">Կատալոգ</a></li></ul>
             </nav>
-            <div class="header-actions"><a href="#" class="cart-btn"><span class="cart-text">Զամբյուղ</span> (0)</a></div>
+            <div class="header-actions"><a href="#" class="cart-btn" id="openCartBtn"><span class="cart-text">Զամբյուղ</span> (<span id="cartCount">0</span>)</a></div>
         </div>
     </header>
 
@@ -90,6 +104,7 @@
         </div>
     </section>
 
+    <!-- Ապրանքի Մանրամասների Մոդալ -->
     <div class="modal" id="orderModal">
         <div class="modal-content">
             <button class="modal-close" id="closeModal">✕</button>
@@ -107,13 +122,40 @@
                     <div class="price-label">Ընդհանուր Արժեքը</div>
                     <span class="price-value" id="detPrice">0</span> <span style="font-weight: 600; color: #000;">AMD</span>
                 </div>
-                <!-- 🌟 Ավելացված տեքստը ընդհանուր արժեքի ներքևում -->
-                <span class="credit-hint">*Գործում է ապառիկի ձևակերպում,մաս-մաս վճարում</span>
+                <span class="credit-hint">* ապառիկի ձևակերպում</span>
             </div>
 
             <input type="text" id="customerName" class="modal-input" placeholder="Ձեր Անունը...">
             <input type="tel" id="customerPhone" class="modal-input" placeholder="Ձեր Հեռախոսահամարը...">
-            <button id="submitOrderBtn" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Հաստատել Պատվերը</button>
+            
+            <!-- 🌟 Կոճակները դարձան երկուսը (Կողք-կողքի) -->
+            <div class="modal-action-btns">
+                <button id="addToCartBtn" class="btn-secondary">Ավելացնել զամբյուղ</button>
+                <button id="submitOrderBtn" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Գնել հիմա</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 ՆՈՐ: Զամբյուղի Մոդալ Պատուհան -->
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeCartModalBtn">✕</button>
+            <h3 class="modal-title">Ձեր Զամբյուղը</h3>
+            
+            <div class="cart-items-list" id="cartItemsContainer">
+                <!-- Ապրանքները կավելանան ավտոմատ -->
+            </div>
+
+            <div class="dynamic-price-box">
+                <div class="price-label">Զամբյուղի Ընդհանուր Գումարը</div>
+                <span class="price-value" id="cartTotalSum">0</span> <span>AMD</span>
+            </div>
+
+            <div id="cartOrderForm">
+                <input type="text" id="cartCustomerName" class="modal-input" placeholder="Ձեր Անունը...">
+                <input type="tel" id="cartCustomerPhone" class="modal-input" placeholder="Ձեր Հեռախոսահամարը...">
+                <button id="submitCartOrderBtn" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Պատվիրել Զամբյուղից</button>
+            </div>
         </div>
     </div>
 
@@ -142,6 +184,9 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+
+        // 🌟 Զամբյուղի Լոկալ Զանգված (Զամբյուղի տվյալները պահվում են այստեղ)
+        let cart = [];
 
         // Burger Menu
         document.getElementById('burgerToggle').addEventListener('click', function() {
@@ -197,7 +242,6 @@
                     document.getElementById('detBrand').innerText = prod.brand || '---';
                     document.getElementById('detGender').innerText = prod.gender || 'Unisex';
                     
-                    // ԳՆԻ ԵՎ ՄԼ-Ի ՀԱՇՎԱՐԿ
                     const baseMl = Number(prod.ml);
                     const basePrice = Number(prod.price);
                     currentPricePerMl = basePrice / baseMl;
@@ -205,10 +249,7 @@
                     const mlSelect = document.getElementById('detMlSelect');
                     mlSelect.innerHTML = '';
 
-                    // Ցույց ենք տալիս միայն Firebase-ից եկած հստակ չափսերը
                     let optionsArray = prod.sizes && Array.isArray(prod.sizes) ? prod.sizes : [baseMl];
-                    
-                    // Ապահովության համար սորտավորում ենք, որ ըստ աճման դասավորվեն (30, 45, 100...)
                     optionsArray.sort((a, b) => a - b);
 
                     optionsArray.forEach(ml => {
@@ -218,7 +259,6 @@
                         mlSelect.appendChild(option);
                     });
 
-                    // Ավտոմատ ընտրում ենք զանգվածի առաջին ծավալը և հաշվում իր համապատասխան գինը
                     const initialMl = optionsArray[0];
                     mlSelect.value = initialMl;
                     document.getElementById('detPrice').innerText = Math.round(initialMl * currentPricePerMl);
@@ -237,6 +277,112 @@
             document.getElementById('detPrice').innerText = calculatedPrice;
         });
 
+        // 🌟 ՆՈՐ: Ապրանք Ավելացնել Զամբյուղի մեջ
+        document.getElementById('addToCartBtn').addEventListener('click', () => {
+            if (selectedProduct) {
+                const finalMl = document.getElementById('detMlSelect').value;
+                const finalPrice = Number(document.getElementById('detPrice').innerText);
+                
+                const cartItem = {
+                    title: selectedProduct.title,
+                    brand: selectedProduct.brand || '',
+                    gender: selectedProduct.gender || 'Unisex',
+                    ml: finalMl,
+                    price: finalPrice
+                };
+
+                cart.push(cartItem);
+                updateCartUI();
+                
+                alert('Ապրանքն ավելացվեց զամբյուղի մեջ։');
+                document.getElementById('orderModal').classList.remove('active');
+            }
+        });
+
+        // 🌟 ՆՈՐ: Զամբյուղի Վիզուալ Թարմացում (UI)
+        function updateCartUI() {
+            document.getElementById('cartCount').innerText = cart.length;
+            const container = document.getElementById('cartItemsContainer');
+            container.innerHTML = '';
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="cart-empty-text">Ձեր զամբյուղը դատարկ է:</p>';
+                document.getElementById('cartTotalSum').innerText = 0;
+                document.getElementById('cartOrderForm').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('cartOrderForm').style.display = 'block';
+            let totalSum = 0;
+
+            cart.forEach((item, index) => {
+                totalSum += item.price;
+                const div = document.createElement('div');
+                div.className = 'cart-item';
+                div.innerHTML = `
+                    <div class="cart-item-info">
+                        <div class="cart-item-title">${item.brand} ${item.title}</div>
+                        <div class="cart-item-meta">${item.ml} մլ | [${item.gender}]</div>
+                    </div>
+                    <div class="cart-item-price">${item.price} AMD</div>
+                    <button class="btn-remove-cart" data-index="${index}">✕</button>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('cartTotalSum').innerText = totalSum;
+
+            // Ջնջելու կոճակների աշխատանքը
+            document.querySelectorAll('.btn-remove-cart').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idx = Number(this.dataset.index);
+                    cart.splice(idx, 1);
+                    updateCartUI();
+                });
+            });
+        }
+
+        // 🌟 ՆՈՐ: Պատվեր Զամբյուղի միջից (Բոլոր ապրանքները միասին)
+        document.getElementById('submitCartOrderBtn').addEventListener('click', () => {
+            const name = document.getElementById('cartCustomerName').value.trim();
+            const phone = document.getElementById('cartCustomerPhone').value.trim();
+
+            if (name && phone && cart.length > 0) {
+                const currentDate = new Date().toLocaleDateString('hy-AM');
+                
+                // Սարքում ենք տեքստ բոլոր ապրանքների համար
+                const itemsTextArray = cart.map(item => `${item.brand} ${item.title} (${item.ml}մլ)` );
+                const finalItemsString = itemsTextArray.join(' + ');
+                const finalTotal = Number(document.getElementById('cartTotalSum').innerText);
+
+                push(ref(db, 'orders'), {
+                    name: name,
+                    phone: phone,
+                    items: finalItemsString,
+                    total: finalTotal,
+                    date: currentDate
+                }).then(() => {
+                    alert('Ձեր զամբյուղի պատվերն ընդունված է։ Շնորհակալություն։');
+                    cart = []; // Դատարկում ենք զամբյուղը
+                    updateCartUI();
+                    document.getElementById('cartCustomerName').value = '';
+                    document.getElementById('cartCustomerPhone').value = '';
+                    document.getElementById('cartModal').classList.remove('active');
+                });
+            } else {
+                alert('Խնդրում ենք լրացնել անունը և հեռախոսահամարը։');
+            }
+        });
+
+        // Զամբյուղի Մոդալի Բացել/Փակել
+        const cartModal = document.getElementById('cartModal');
+        document.getElementById('openCartBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            updateCartUI();
+            cartModal.classList.add('active');
+        });
+        document.getElementById('closeCartModalBtn').addEventListener('click', () => cartModal.classList.remove('active'));
+
         // Close Modals
         const orderModal = document.getElementById('orderModal');
         const adminModal = document.getElementById('adminLoginModal');
@@ -248,9 +394,10 @@
         window.addEventListener('click', (e) => {
             if (e.target === orderModal) orderModal.classList.remove('active');
             if (e.target === adminModal) adminModal.classList.remove('active');
+            if (e.target === cartModal) cartModal.classList.remove('active');
         });
 
-        // Submit Order
+        // Submit Order (Մեկ հատիկ ապրանքի արագ գնում "Գնել հիմա"-ով)
         document.getElementById('submitOrderBtn').addEventListener('click', () => {
             const name = document.getElementById('customerName').value.trim();
             const phone = document.getElementById('customerPhone').value.trim();
@@ -281,12 +428,11 @@
 
         // Ադմին Մոդալի կառավարում
         document.querySelector('.logo').addEventListener('click', (e) => {
-            e.preventDefault(); // Կանխում է էջի թարմացումը href="#"-ի պատճառով
+            e.preventDefault();
             adminModal.classList.add('active');
         });
 
         document.getElementById('adminLoginBtn').addEventListener('click', checkAdminPass);
-        // Մուտք նաև Enter սեղմելիս
         document.getElementById('adminPassInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') checkAdminPass();
         });
