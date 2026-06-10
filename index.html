@@ -200,15 +200,11 @@
                     const mlSelect = document.getElementById('detMlSelect');
                     mlSelect.innerHTML = '';
 
-                    // 🌟 ՇՏԿՈՒՄ: Ստեղծում ենք տարբերակները և ճիշտ տեղում ավելացնում բազային մլ-ը, որ հերթականությունը չխախտվի
-                    let optionsArray = [];
-                    for(let i = 30; i <= 150; i += 5) {
-                        optionsArray.push(i);
-                    }
-                    if (!optionsArray.includes(baseMl)) {
-                        optionsArray.push(baseMl);
-                        optionsArray.sort((a, b) => a - b); // Սորտավորում ըստ աճման
-                    }
+                    // 🌟 ՓՈՓՈԽՈՒԹՅՈՒՆ: Ցույց ենք տալիս միայն Firebase-ից եկած հստակ չափսերը
+                    let optionsArray = prod.sizes && Array.isArray(prod.sizes) ? prod.sizes : [baseMl];
+                    
+                    // Ապահովության համար սորտավորում ենք, որ ըստ աճման դասավորվեն (30, 45, 100...)
+                    optionsArray.sort((a, b) => a - b);
 
                     optionsArray.forEach(ml => {
                         const option = document.createElement('option');
@@ -217,8 +213,11 @@
                         mlSelect.appendChild(option);
                     });
 
-                    mlSelect.value = baseMl;
-                    document.getElementById('detPrice').innerText = basePrice;
+                    // Ավտոմատ ընտրում ենք զանգվածի առաջին ծավալը և հաշվում իր համապատասխան գինը
+                    const initialMl = optionsArray[0];
+                    mlSelect.value = initialMl;
+                    document.getElementById('detPrice').innerText = Math.round(initialMl * currentPricePerMl);
+                    
                     document.getElementById('orderModal').classList.add('active');
                 });
 
@@ -240,7 +239,7 @@
         document.getElementById('closeModal').addEventListener('click', () => orderModal.classList.remove('active'));
         document.getElementById('closeAdminModalBtn').addEventListener('click', () => adminModal.classList.remove('active'));
 
-        // 🌟 ՇՏԿՈՒՄ: Ֆոնին (դրսից) սեղմելիս փակել պատուհանները
+        // Ֆոնին (դրսից) սեղմելիս փակել պատուհանները
         window.addEventListener('click', (e) => {
             if (e.target === orderModal) orderModal.classList.remove('active');
             if (e.target === adminModal) adminModal.classList.remove('active');
@@ -275,7 +274,7 @@
             }
         });
 
-        // 🌟 ՇՏԿՈՒՄ: Ադմին Մոդալի կառավարում
+        // Ադմին Մոդալի կառավարում
         document.querySelector('.logo').addEventListener('click', (e) => {
             e.preventDefault(); // Կանխում է էջի թարմացումը href="#"-ի պատճառով
             adminModal.classList.add('active');
