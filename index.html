@@ -8,6 +8,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <link rel="stylesheet" href="style.css">
 
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            emailjs.init("BGfpmh0Nv1yZRspsO");
+        })();
+    </script>
+
     <style>
         .products-section { padding: 60px 0; background-color: #ffffff; }
         .section-title { text-align: center; font-size: 28px; margin-bottom: 40px; text-transform: uppercase; letter-spacing: 1px; }
@@ -103,7 +110,6 @@
         </div>
     </section>
 
-    <!-- Ապրանքի Մանրամասների Մոդալ -->
     <div class="modal" id="orderModal">
         <div class="modal-content">
             <button class="modal-close" id="closeModal">✕</button>
@@ -134,21 +140,18 @@
         </div>
     </div>
 
-    <!-- Զամբյուղի Մոդալ Պատուհան -->
     <div class="modal" id="cartModal">
         <div class="modal-content">
             <button class="modal-close" id="closeCartModalBtn">✕</button>
             <h3 class="modal-title">Ձեր Զամբյուղը</h3>
             
             <div class="cart-items-list" id="cartItemsContainer">
-                <!-- Ապրանքները կավելանան ավտոմատ -->
-            </div>
+                </div>
 
             <div class="dynamic-price-box">
                 <div class="price-label">Զամբյուղի Ընդհանուր Գումարը</div>
                 <span class="price-value" id="cartTotalSum">0</span> <span>AMD</span>
             </div>
-            <!-- 🌟 Ավելացված տեքստը զամբյուղի գումարի տակ -->
             <span class="credit-hint">* ապառիկի ձևակերպում</span>
 
             <div id="cartOrderForm">
@@ -339,6 +342,24 @@
             });
         }
 
+        // 🌟 ՖՈՒՆԿՑԻԱ: EmailJS-ով նամակի ուղարկում քո ID-ներով
+        function sendEmailNotification(name, phone, items, total, date) {
+            const templateParams = {
+                customer_name: name,
+                customer_phone: phone,
+                order_items: items,
+                total_price: total + " AMD",
+                order_date: date
+            };
+
+            emailjs.send("service_mktk3ml", "template_5njvwga", templateParams)
+                .then(function(response) {
+                    console.log("Email ուղարկվեց հաջողությամբ!", response.status, response.text);
+                }, function(error) {
+                    console.error("Email-ի ուղարկման սխալ...", error);
+                });
+        }
+
         // Պատվեր Զամբյուղի միջից
         document.getElementById('submitCartOrderBtn').addEventListener('click', () => {
             const name = document.getElementById('cartCustomerName').value.trim();
@@ -351,6 +372,7 @@
                 const finalItemsString = itemsTextArray.join(' + ');
                 const finalTotal = Number(document.getElementById('cartTotalSum').innerText);
 
+                // 1. Գրանցում Firebase-ում
                 push(ref(db, 'orders'), {
                     name: name,
                     phone: phone,
@@ -358,6 +380,9 @@
                     total: finalTotal,
                     date: currentDate
                 }).then(() => {
+                    // 2. Ուղարկում ենք Email ադմինին
+                    sendEmailNotification(name, phone, finalItemsString, finalTotal, currentDate);
+
                     alert('Ձեր զամբյուղի պատվերն ընդունված է։ Շնորհակալություն։');
                     cart = [];
                     updateCartUI();
@@ -392,7 +417,7 @@
             if (e.target === cartModal) cartModal.classList.remove('active');
         });
 
-        // Submit Order
+        // Submit Order (Արագ գնում՝ "Գնել հիմա")
         document.getElementById('submitOrderBtn').addEventListener('click', () => {
             const name = document.getElementById('customerName').value.trim();
             const phone = document.getElementById('customerPhone').value.trim();
@@ -404,6 +429,7 @@
                 const currentDate = new Date().toLocaleDateString('hy-AM');
                 const orderItemInfo = `${selectedProduct.brand || ''} ${selectedProduct.title} (${finalMl} մլ) [${selectedProduct.gender || 'Unisex'}]`;
 
+                // 1. Գրանցում Firebase-ում
                 push(ref(db, 'orders'), {
                     name: name,
                     phone: phone,
@@ -411,6 +437,9 @@
                     total: Number(finalPrice),
                     date: currentDate
                 }).then(() => {
+                    // 2. Ուղարկում ենք Email ադմինին
+                    sendEmailNotification(name, phone, orderItemInfo, finalPrice, currentDate);
+
                     alert('Ձեր պատվերն ընդունված է։ Շնորհակալություն գնումների համար:');
                     document.getElementById('customerName').value = '';
                     document.getElementById('customerPhone').value = '';
