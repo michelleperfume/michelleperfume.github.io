@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Michelle Perfume | Official Store</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <link rel="stylesheet" href="style.css">
 
@@ -50,12 +50,11 @@
         .modal-input:focus { border-color: #000; }
         select.modal-input { cursor: pointer; font-weight: 600; }
 
-        /* 🌟 Նոր Կոճակների Դասավորվածություն Մոդալում */
         .modal-action-btns { display: flex; gap: 10px; margin-top: 10px; }
         .btn-secondary { background: #222; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 14px; width: 100%; cursor: pointer; transition: 0.2s; }
         .btn-secondary:hover { background: #444; }
 
-        /* 🌟 Զամբյուղի էլեմենտների ոճերը */
+        /* Զամբյուղի էլեմենտների ոճերը */
         .cart-items-list { margin-bottom: 20px; }
         .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
         .cart-item-info { flex-grow: 1; padding-right: 10px; }
@@ -128,7 +127,6 @@
             <input type="text" id="customerName" class="modal-input" placeholder="Ձեր Անունը...">
             <input type="tel" id="customerPhone" class="modal-input" placeholder="Ձեր Հեռախոսահամարը...">
             
-            <!-- 🌟 Կոճակները դարձան երկուսը (Կողք-կողքի) -->
             <div class="modal-action-btns">
                 <button id="addToCartBtn" class="btn-secondary">Ավելացնել զամբյուղ</button>
                 <button id="submitOrderBtn" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">Գնել հիմա</button>
@@ -136,7 +134,7 @@
         </div>
     </div>
 
-    <!-- 🌟 ՆՈՐ: Զամբյուղի Մոդալ Պատուհան -->
+    <!-- Զամբյուղի Մոդալ Պատուհան -->
     <div class="modal" id="cartModal">
         <div class="modal-content">
             <button class="modal-close" id="closeCartModalBtn">✕</button>
@@ -150,6 +148,8 @@
                 <div class="price-label">Զամբյուղի Ընդհանուր Գումարը</div>
                 <span class="price-value" id="cartTotalSum">0</span> <span>AMD</span>
             </div>
+            <!-- 🌟 Ավելացված տեքստը զամբյուղի գումարի տակ -->
+            <span class="credit-hint">* ապառիկի ձևակերպում</span>
 
             <div id="cartOrderForm">
                 <input type="text" id="cartCustomerName" class="modal-input" placeholder="Ձեր Անունը...">
@@ -185,7 +185,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // 🌟 Զամբյուղի Լոկալ Զանգված (Զամբյուղի տվյալները պահվում են այստեղ)
         let cart = [];
 
         // Burger Menu
@@ -233,7 +232,6 @@
                     </div>
                 `;
 
-                // ՔԱՐՏԻ ՍԵՂՄՈՒՄ
                 card.addEventListener('click', () => {
                     selectedProduct = prod;
                     
@@ -277,7 +275,7 @@
             document.getElementById('detPrice').innerText = calculatedPrice;
         });
 
-        // 🌟 ՆՈՐ: Ապրանք Ավելացնել Զամբյուղի մեջ
+        // Ապրանք Ավելացնել Զամբյուղի մեջ
         document.getElementById('addToCartBtn').addEventListener('click', () => {
             if (selectedProduct) {
                 const finalMl = document.getElementById('detMlSelect').value;
@@ -299,7 +297,7 @@
             }
         });
 
-        // 🌟 ՆՈՐ: Զամբյուղի Վիզուալ Թարմացում (UI)
+        // Զամբյուղի Վիզուալ Թարմացում (UI)
         function updateCartUI() {
             document.getElementById('cartCount').innerText = cart.length;
             const container = document.getElementById('cartItemsContainer');
@@ -332,7 +330,6 @@
 
             document.getElementById('cartTotalSum').innerText = totalSum;
 
-            // Ջնջելու կոճակների աշխատանքը
             document.querySelectorAll('.btn-remove-cart').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const idx = Number(this.dataset.index);
@@ -342,7 +339,7 @@
             });
         }
 
-        // 🌟 ՆՈՐ: Պատվեր Զամբյուղի միջից (Բոլոր ապրանքները միասին)
+        // Պատվեր Զամբյուղի միջից
         document.getElementById('submitCartOrderBtn').addEventListener('click', () => {
             const name = document.getElementById('cartCustomerName').value.trim();
             const phone = document.getElementById('cartCustomerPhone').value.trim();
@@ -350,7 +347,6 @@
             if (name && phone && cart.length > 0) {
                 const currentDate = new Date().toLocaleDateString('hy-AM');
                 
-                // Սարքում ենք տեքստ բոլոր ապրանքների համար
                 const itemsTextArray = cart.map(item => `${item.brand} ${item.title} (${item.ml}մլ)` );
                 const finalItemsString = itemsTextArray.join(' + ');
                 const finalTotal = Number(document.getElementById('cartTotalSum').innerText);
@@ -363,7 +359,7 @@
                     date: currentDate
                 }).then(() => {
                     alert('Ձեր զամբյուղի պատվերն ընդունված է։ Շնորհակալություն։');
-                    cart = []; // Դատարկում ենք զամբյուղը
+                    cart = [];
                     updateCartUI();
                     document.getElementById('cartCustomerName').value = '';
                     document.getElementById('cartCustomerPhone').value = '';
@@ -390,14 +386,13 @@
         document.getElementById('closeModal').addEventListener('click', () => orderModal.classList.remove('active'));
         document.getElementById('closeAdminModalBtn').addEventListener('click', () => adminModal.classList.remove('active'));
 
-        // Ֆոնին (դրսից) սեղմելիս փակել պատուհանները
         window.addEventListener('click', (e) => {
             if (e.target === orderModal) orderModal.classList.remove('active');
             if (e.target === adminModal) adminModal.classList.remove('active');
             if (e.target === cartModal) cartModal.classList.remove('active');
         });
 
-        // Submit Order (Մեկ հատիկ ապրանքի արագ գնում "Գնել հիմա"-ով)
+        // Submit Order
         document.getElementById('submitOrderBtn').addEventListener('click', () => {
             const name = document.getElementById('customerName').value.trim();
             const phone = document.getElementById('customerPhone').value.trim();
