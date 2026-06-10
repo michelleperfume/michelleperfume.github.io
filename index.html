@@ -342,7 +342,7 @@
             });
         }
 
-     // 🌟 ՈՒՂՂՎԱԾ ՖՈՒՆԿՑԻԱ: Նամակի ուղարկում առանց սահմանափակման
+// 🌟 ՎԵՐՋՆԱԿԱՆ ՈՒՂՂՎԱԾ ՖՈՒՆԿՑԻԱ: Կապում ենք Settings-ի սպասած փոփոխականը
         function sendEmailNotification(name, phone, items, total, date) {
             const templateParams = {
                 customer_name: name,
@@ -350,9 +350,10 @@
                 order_items: items,
                 total_price: total + " AMD",
                 order_date: date,
-                // Ավելացնում ենք default փոփոխականներ, որ սերվերը 422 սխալ չտա
-                to_name: "Admin",
-                from_name: "Michelle Perfume Store"
+                
+                // 🔗 Այս տողով EmailJS-ին տալիս ենք իր ուզած {{email}}-ը,
+                // որպեսզի նամակը գնա հենց քո նշած ադմինիստրատիվ Gmail-ին
+                email: "100000milionsub@gmail.com"
             };
 
             emailjs.send("service_mktk3ml", "template_5njvwga", templateParams)
@@ -362,7 +363,6 @@
                     console.error("Email-ի ուղարկման սխալ...", error);
                 });
         }
-
         // Պատվեր Զամբյուղի միջից
         document.getElementById('submitCartOrderBtn').addEventListener('click', () => {
             const name = document.getElementById('cartCustomerName').value.trim();
