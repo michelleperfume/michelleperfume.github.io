@@ -47,6 +47,9 @@
                     <input type="number" id="prodMl" placeholder="Բազային ծավալ (մլ) օր.՝ 100" style="width: 50%;">
                     <input type="number" id="prodPrice" placeholder="Գին (AMD) օր.՝ 15000" style="width: 50%;">
                 </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <input type="text" id="prodSizes" placeholder="Հնարավոր ծավալները ստորակետով՝ 30,45,100...">
+                </div>
                 <div class="form-group">
                     <select id="prodGender" class="form-input">
                         <option value="Unisex">Unisex</option>
@@ -140,6 +143,8 @@
         list.innerHTML = '';
         Object.keys(data).forEach(key => {
             const p = data[key];
+            // Ցուցադրում ենք նաև ներմուծված չափսերը ադմինի preview-ում
+            const sizesPreview = p.sizes ? p.sizes.join(', ') + ' մլ' : 'Չկա';
             list.innerHTML += `
                 <div class="item-card">
                     <img src="${p.img}" width="80">
@@ -147,6 +152,7 @@
                         <h4>${p.title}</h4>
                         <p>${p.brand} [${p.gender || 'Unisex'}]</p>
                         <div class="item-details-preview"><b>Բազային արժեք:</b> ${p.ml}մլ = ${p.price} AMD</div>
+                        <div class="item-details-preview"><b>Բոլոր չափսերը:</b> ${sizesPreview}</div>
                     </div>
                     <button class="btn-delete" id="del-prod-${key}">Ջնջել</button>
                 </div>`;
@@ -163,19 +169,24 @@
         const brand = document.getElementById('prodBrand').value.trim();
         const ml = document.getElementById('prodMl').value.trim();
         const price = document.getElementById('prodPrice').value.trim();
+        const sizesRaw = document.getElementById('prodSizes').value.trim();
         const gender = document.getElementById('prodGender').value;
         const file = document.getElementById('prodFileInput').files[0];
 
-        if(title && brand && ml && price && file) {
+        if(title && brand && ml && price && sizesRaw && file) {
             document.getElementById('prodLoading').style.display = 'block';
             const base64Img = await compressAndResizeImage(file, 600, 0.80); // Ապրանքի նկարը ավելի փոքր
             
+            // Ստորակետով տեքստը սարքում ենք թվերի մաքուր զանգված (Array)
+            const sizesArray = sizesRaw.split(',').map(s => Number(s.trim())).filter(s => !isNaN(s) && s > 0);
+
             // Պահում ենք ուղիղ Realtime Database-ում
             push(productsRef, { 
                 title, 
                 brand, 
                 ml: Number(ml), 
                 price: Number(price), 
+                sizes: sizesArray, // Նոր զանգվածը ավելացավ օբյեկտի մեջ
                 gender, 
                 img: base64Img 
             }).then(() => {
@@ -184,9 +195,10 @@
                 document.getElementById('prodBrand').value = '';
                 document.getElementById('prodMl').value = '';
                 document.getElementById('prodPrice').value = '';
+                document.getElementById('prodSizes').value = '';
                 document.getElementById('prodFileInput').value = '';
             });
-        } else { alert('Լրացրու բոլոր դաշտերը և ընտրիր նկարը!'); }
+        } else { alert('Լրացրու բոլոր դաշտերը (ներառյալ չափսերը ստորակետով) և ընտրիր նկարը!'); }
     });
 
     // --- Պատվերներ ---
