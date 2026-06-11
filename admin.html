@@ -159,45 +159,20 @@
         });
     }
 
-// 🚀 ԱՆԽՈՑԵԼԻ ՈՒ ՊԱՇՏՈՆԱԿԱՆ API ԲԵՌՆՈՒՄ (ԷԼ ՈՉ ՄԻ 401 ՍԽԱԼ ՉԻ ԼԻՆԻ)
+// 🔒 ՊԼԱՆ Բ. 100% ԵՐԱՇԽԱՎՈՐՎԱԾ ՏԱՐԲԵՐԱԿ՝ ԱՌԱՆՑ ՈՐԵՎԷ ԱՐՏԱՔԻՆ ՍԵՐՎԵՐԻ
     async function uploadImageToCloud(file) {
-        // 1. Նախքան ուղարկելը 4K/2K նկարը ավտոմատ սեղմում ու թեթևացնում ենք
+        // 1. Սեղմում ենք նկարը, որ դառնա գերթեթև
         const compressedFile = await resizeAndCompressImage(file);
 
-        const formData = new FormData();
-        formData.append("file", compressedFile);
-        
-        // Օգտագործում ենք պաշտոնական բաց հեղինակավորումը
-        formData.append("api_key", "551221443657497"); 
-        formData.append("upload_preset", "ml_default"); // Սա Cloudinary-ի ստանդարտ, հավերժական բաց պրեսետն է
-
-        try {
-            const response = await fetch("https://api.cloudinary.com/v1_1/regiscode/image/upload", {
-                method: "POST",
-                body: formData // Բրաուզերը ինքը ճիշտ կկազմի Content-Type-ը
-            });
-
-            if (!response.ok) {
-                const errData = await response.json();
-                console.error("Cloudinary Սերվերի Սխալը:", errData);
-                throw new Error("Cloudinary-ն մերժեց հարցումը");
-            }
-
-            const result = await response.json();
-            
-            // Եթե բեռնումը հաջող է, վերցնում ենք անվտանգ HTTPS հղումը
-            if (result && result.secure_url) {
-                return result.secure_url; 
-            } else {
-                throw new Error("Սխալ պատասխան սերվերից");
-            }
-        } catch (error) {
-            console.error("Բեռնման սխալ:", error);
-            alert("Նկարը չբեռնվեց։ Փորձեք կրկին կամ ընտրեք ուրիշ նկար։");
-            return null;
-        }
+        // 2. Վերածում ենք Base64 տեքստի, որը ուղիղ կպահվի Firebase-ում
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(compressedFile);
+            reader.onloadend = () => {
+                resolve(reader.result); // Սա վերադարձնում է նկարի տեքստային կոդը (data:image/webp;base64,...)
+            };
+        });
     }
-
     // --- Սլայդերի կոդ ---
     const sliderRef = ref(db, 'slider');
     onValue(sliderRef, (snapshot) => {
