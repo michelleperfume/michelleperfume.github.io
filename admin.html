@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Michelle Perfume | Admin Panel</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        select.form-input { width: 100%; padding: 12px 15px; border: 1px solid var(--color-border, #EAEAEC); border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; background: white; cursor: pointer; }
+        select.form-input:focus { border-color: #000; }
+        .item-details-preview { font-size: 12px; color: #666; margin-top: 5px; line-height: 1.4; }
+        .loading-text { font-size: 14px; color: #007bff; font-weight: 600; display: none; margin-top: 10px; }
+        
+        .edit-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.3s ease; z-index: 1000; }
+        .edit-modal.active { opacity: 1; pointer-events: auto; }
+        .edit-modal-content { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; }
+        .edit-modal-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: #666; }
+        .edit-modal h3 { margin-top: 0; margin-bottom: 20px; font-size: 18px; font-weight: 700; }
+        .edit-form-group { margin-bottom: 15px; }
+        .edit-form-group label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; }
+        .edit-form-group input { width: 100%; padding: 10px; border: 1px solid #EAEAEC; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
+        .edit-form-group input:focus { border-color: #000; outline: none; }
+        .btn-edit-action { background: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 5px; }
+        .btn-edit-action:hover { background: #0056b3; }
+        .item-actions { display: flex; flex-direction: column; gap: 5px; justify-content: center; }
+
+        /* Pagination / Infinite scroll styles */
+        .load-more-sentinel {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .load-more-spinner {
+            display: none;
+            font-size: 13px;
+            color: #007bff;
+            font-weight: 600;
+        }
+        .load-more-spinner.visible {
+            display: block;
+        }
+        .all-loaded-msg {
+            display: none;
+            font-size: 12px;
+            color: #aaa;
+            text-align: center;
+            padding: 10px 0 20px;
+        }
+        .all-loaded-msg.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="logo">Michelle <span>Admin</span></div>
+        <ul class="admin-menu">
+            <li><a href="#" class="tab-btn active" data-tab="slider-tab">Գլխավոր Սլայդեր</a></li>
+            <li><a href="#" class="tab-btn" data-tab="products-tab">Ապրանքներ (Cards)</a></li>
+            <li><a href="#" class="tab-btn" data-tab="orders-tab">Պատվերներ <span id="orders-badge" class="badge">0</span></a></li>
+        </ul>
+        <a href="index.html" class="back-to-site">← Դեպի կայք</a>
+    </aside>
+
+    <main class="admin-content">
+        <div id="slider-tab" class="tab-content active">
+            <header class="admin-header"><h1>Կառավարել Սլայդերը</h1></header>
+            <div class="add-box">
+                <input type="file" id="sliderFileInput" accept="image/*" style="padding: 8px;">
+                <button id="addSliderBtn" class="btn-dark">Ավելացնել Սլայդերում</button>
+            </div>
+            <p id="sliderLoading" class="loading-text">Նկարը օպտիմալացվում և պահվում է բազայում...</p>
+            <div class="grid-list" id="adminSliderList"></div>
+        </div>
+
+        <div id="products-tab" class="tab-content">
+            <header class="admin-header"><h1>Ապրանքների Կատալոգ</h1></header>
+            <div class="add-product-form">
+                <h3>Ավելացնել նոր ապրանք</h3>
+                <div class="form-group">
+                    <input type="text" id="prodTitle" placeholder="Ապրանքի անվանումը...">
+                    <input type="text" id="prodBrand" placeholder="Բրենդ...">
+                </div>
+                <div class="form-group">
+                    <input type="number" id="prodMl" placeholder="Բազային ծավալ (մլ) օր.՝ 100" style="width: 50%;">
+                    <input type="number" id="prodPrice" placeholder="Գին (AMD) օր.՝ 15000" style="width: 50%;">
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <input type="text" id="prodSizes" placeholder="Հնարավոր ծավալները ստորակետով՝ 30,45,100...">
+                </div>
+                <div class="form-group" style="margin: 15px 0;">
+                    <label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
+                        <input type="checkbox" id="prodPinned"> ⭐ Ավելացնել որպես առաջնահերթ (TOP)
+                    </label>
+                </div>
+                <div class="form-group">
+                    <select id="prodGender" class="form-input">
+                        <option value="Unisex">Unisex</option>
+                        <option value="Տղամարդու">Տղամարդու</option>
+                        <option value="Կանացի">Կանացի</option>
+                    </select>
+                    <input type="file" id="prodFileInput" accept="image/*" style="padding: 8px;">
+                </div>
+                <button id="addProductBtn" class="btn-dark" style="margin-top: 15px;">Ավելացնել Կատալոգում</button>
+                <p id="prodLoading" class="loading-text">Նկարը օպտիմալացվում և պահվում է բազայում...</p>
+            </div>
+
+            <!-- Products list with infinite scroll sentinels -->
+            <div class="grid-list" id="adminProductsList"></div>
+            <div class="load-more-sentinel" id="products-sentinel">
+                <span class="load-more-spinner" id="products-spinner">Բեռնվում է...</span>
+            </div>
+            <div class="all-loaded-msg" id="products-all-loaded">✓ Բոլոր ապրանքները ցուցադրված են</div>
+        </div>
+
+        <div id="orders-tab" class="tab-content">
+            <header class="admin-header"><h1>Ստացված Պատվերներ</h1></header>
+
+            <!-- Orders list with infinite scroll sentinels -->
+            <div class="orders-container" id="adminOrdersList"></div>
+            <div class="load-more-sentinel" id="orders-sentinel">
+                <span class="load-more-spinner" id="orders-spinner">Բեռնվում է...</span>
+            </div>
+            <div class="all-loaded-msg" id="orders-all-loaded">✓ Բոլոր պատվերները ցուցադրված են</div>
+        </div>
+    </main>
+
+    <div class="edit-modal" id="editProductModal">
+        <div class="edit-modal-content">
+            <button class="edit-modal-close" id="closeEditModal">✕</button>
+            <h3>Խմբագրել Ապրանքը</h3>
+            <div class="edit-form-group">
+                <label>Անվանում</label>
+                <input type="text" id="editProdTitle">
+            </div>
+            <div class="edit-form-group">
+                <label>Բրենդ</label>
+                <input type="text" id="editProdBrand">
+            </div>
+            <div class="edit-form-group">
+                <label>Հին Գին (AMD)</label>
+                <input type="number" id="editProdPrice">
+            </div>
+            <div class="edit-form-group">
+                <label>Նոր Գին / Զեղչ (AMD)</label>
+                <input type="number" id="editProdSalePrice" placeholder="Թողնել դատարկ, եթե զեղչ չկա">
+            </div>
+            <button id="saveProductBtn" class="btn-dark" style="width: 100%; margin-top: 10px;">Պահպանել Փոփոխությունները</button>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, push, update, remove, query, orderByKey, limitToLast, endBefore, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDDIyOC18ezuMB1dnPaap9FohRGU62OsrY",
+        authDomain: "michele-fcaf7.firebaseapp.com",
+        projectId: "michele-fcaf7",
+        storageBucket: "michele-fcaf7.firebasestorage.app",
+        messagingSenderId: "94596268135",
+        appId: "1:94596268135:web:fb84cda9f2e427199814c2",
+        databaseURL: "https://michele-fcaf7-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    let currentEditingKey = null;
+
+    // ─── Helper: image compress ───────────────────────────────────────────────
+    function resizeAndCompressToBase64(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 600;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > MAX_WIDTH) {
+                        height = Math.round((height * MAX_WIDTH) / width);
+                        width = MAX_WIDTH;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const base64Data = canvas.toDataURL("image/webp", 0.70);
+                    resolve(base64Data);
+                };
+            };
+        });
+    }
+
+    // ─── SLIDER (փոքր քանակ, onValue մնում է ինչպես կա) ──────────────────────
+    const sliderRef = ref(db, 'slider');
+    onValue(sliderRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const list = document.getElementById('adminSliderList');
+        list.innerHTML = '';
+        Object.keys(data).forEach(key => {
+            const item = data[key];
+            list.innerHTML += `<div class="item-card"><img src="${item.img}" width="80" style="height:50px; object-fit:cover; border-radius:4px;"><button class="btn-delete" id="del-s-${key}">Ջնջել</button></div>`;
+        });
+        Object.keys(data).forEach(key => {
+            document.getElementById(`del-s-${key}`)?.addEventListener('click', () => remove(ref(db, `slider/${key}`)));
+        });
+    });
+
+    document.getElementById('addSliderBtn').addEventListener('click', async () => {
+        const file = document.getElementById('sliderFileInput').files[0];
+        if(file) {
+            document.getElementById('sliderLoading').style.display = 'block';
+            const base64Img = await resizeAndCompressToBase64(file);
+            push(sliderRef, { img: base64Img }).then(() => {
+                document.getElementById('sliderLoading').style.display = 'none';
+                document.getElementById('sliderFileInput').value = '';
+            });
+        } else { alert('Ընտրիր սլայդերի նկարը։'); }
+    });
+
+
+    // ─── PRODUCTS — Paginated Infinite Scroll ─────────────────────────────────
+    // Պահում ենք բոլոր load-ված ապրանքները local cache-ում
+    const productsCache = {};   // { key: productObject }
+    let productsOldestKey = null;   // pagination cursor (ամենահին ստացված key-ը)
+    let productsLoading = false;
+    let productsAllLoaded = false;
+    const PAGE_SIZE = 20;
+
+    // Render helper — ավելացնում է նոր card-եր list-ի ՎԵՐՋՈՒՄ
+    function renderProductCards(items) {
+        const list = document.getElementById('adminProductsList');
+        items.forEach(({ key, p }) => {
+            const sizesPreview = p.sizes ? p.sizes.join(', ') + ' մլ' : 'Չկա';
+            const pinnedLabel = p.pinned ? `<span style="background:#ff3b30; color:#fff; padding:2px 6px; border-radius:4px; font-size:10px;">TOP</span> ` : '';
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.id = `pcard-${key}`;
+            card.innerHTML = `
+                <img src="${p.img}" width="80" style="object-fit: cover; height: 80px; border-radius: 6px;">
+                <div class="item-info">
+                    <h4>${pinnedLabel}${p.title}</h4>
+                    <p>${p.brand} [${p.gender || 'Unisex'}]</p>
+                    <div class="item-details-preview"><b>Արժեք:</b> ${p.ml}մլ = ${p.price} AMD</div>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-edit-action" id="edit-prod-${key}">Edit</button>
+                    <button class="btn-delete" id="del-prod-${key}">Ջնջել</button>
+                </div>`;
+            list.appendChild(card);
+
+            document.getElementById(`del-prod-${key}`)?.addEventListener('click', () => {
+                remove(ref(db, `products/${key}`));
+                document.getElementById(`pcard-${key}`)?.remove();
+                delete productsCache[key];
+            });
+            document.getElementById(`edit-prod-${key}`)?.addEventListener('click', () => {
+                currentEditingKey = key;
+                document.getElementById('editProdTitle').value = p.title;
+                document.getElementById('editProdBrand').value = p.brand;
+                document.getElementById('editProdPrice').value = p.price;
+                document.getElementById('editProdSalePrice').value = p.salePrice || '';
+                document.getElementById('editProductModal').classList.add('active');
+            });
+        });
+    }
+
+    // Firebase-ից քաշում ենք հաջորդ PAGE_SIZE ապրանքը
+    async function loadMoreProducts() {
+        if (productsLoading || productsAllLoaded) return;
+        productsLoading = true;
+        document.getElementById('products-spinner').classList.add('visible');
+
+        let q;
+        if (productsOldestKey === null) {
+            // Առաջին load — վերջի 20-ը
+            q = query(ref(db, 'products'), orderByKey(), limitToLast(PAGE_SIZE));
+        } else {
+            // Հաջորդ load — cursor-ից առաջ
+            q = query(ref(db, 'products'), orderByKey(), endBefore(productsOldestKey), limitToLast(PAGE_SIZE));
+        }
+
+        const snapshot = await get(q);
+        const data = snapshot.val() || {};
+        const keys = Object.keys(data);
+
+        if (keys.length === 0) {
+            productsAllLoaded = true;
+            document.getElementById('products-spinner').classList.remove('visible');
+            document.getElementById('products-all-loaded').classList.add('visible');
+            productsLoading = false;
+            return;
+        }
+
+        // Firebase-ը վերադարձնում է ascending order, մենք ուզում ենք newest → oldest
+        // ուստի reverse ենք անում
+        const sortedKeys = keys.sort(); // ascending (Firebase default)
+        productsOldestKey = sortedKeys[0]; // ամենա-հինը՝ հաջորդ cursor
+
+        // Ավելացնում ենք cache-ին, render ենք անում newest-first
+        const toRender = sortedKeys.reverse().map(key => {
+            productsCache[key] = data[key];
+            return { key, p: data[key] };
+        });
+        renderProductCards(toRender);
+
+        if (keys.length < PAGE_SIZE) {
+            productsAllLoaded = true;
+            document.getElementById('products-all-loaded').classList.add('visible');
+        }
+
+        document.getElementById('products-spinner').classList.remove('visible');
+        productsLoading = false;
+    }
+
+    // IntersectionObserver — products sentinel
+    const productsObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            loadMoreProducts();
+        }
+    }, { threshold: 0.1 });
+    productsObserver.observe(document.getElementById('products-sentinel'));
+
+    // Նոր ապրանք ավելացնելիս — cache ու list թարմացնում ենք մանուալ
+    document.getElementById('addProductBtn').addEventListener('click', async () => {
+        const title = document.getElementById('prodTitle').value.trim();
+        const brand = document.getElementById('prodBrand').value.trim();
+        const ml = document.getElementById('prodMl').value.trim();
+        const price = document.getElementById('prodPrice').value.trim();
+        const sizesRaw = document.getElementById('prodSizes').value.trim();
+        const gender = document.getElementById('prodGender').value;
+        const file = document.getElementById('prodFileInput').files[0];
+        const isPinned = document.getElementById('prodPinned').checked;
+
+        if(title && brand && ml && price && sizesRaw && file) {
+            document.getElementById('prodLoading').style.display = 'block';
+            const base64Img = await resizeAndCompressToBase64(file);
+            const sizesArray = sizesRaw.split(',').map(s => Number(s.trim())).filter(s => !isNaN(s) && s > 0);
+            const newProd = { title, brand, ml: Number(ml), price: Number(price), salePrice: "", sizes: sizesArray, gender, img: base64Img, pinned: isPinned };
+
+            const newRef = await push(ref(db, 'products'), newProd);
+            const newKey = newRef.key;
+
+            // Ավելացնում ենք list-ի ՍԿԻԶԲ (ամենանոր)
+            productsCache[newKey] = newProd;
+            const list = document.getElementById('adminProductsList');
+            const tempContainer = document.createElement('div');
+            list.insertBefore(tempContainer, list.firstChild);
+
+            // Render the new card at top
+            const pinnedLabel = isPinned ? `<span style="background:#ff3b30; color:#fff; padding:2px 6px; border-radius:4px; font-size:10px;">TOP</span> ` : '';
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.id = `pcard-${newKey}`;
+            card.innerHTML = `
+                <img src="${base64Img}" width="80" style="object-fit: cover; height: 80px; border-radius: 6px;">
+                <div class="item-info">
+                    <h4>${pinnedLabel}${title}</h4>
+                    <p>${brand} [${gender}]</p>
+                    <div class="item-details-preview"><b>Արժեք:</b> ${ml}մլ = ${price} AMD</div>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-edit-action" id="edit-prod-${newKey}">Edit</button>
+                    <button class="btn-delete" id="del-prod-${newKey}">Ջնջել</button>
+                </div>`;
+            list.replaceChild(card, tempContainer);
+
+            document.getElementById(`del-prod-${newKey}`)?.addEventListener('click', () => {
+                remove(ref(db, `products/${newKey}`));
+                document.getElementById(`pcard-${newKey}`)?.remove();
+                delete productsCache[newKey];
+            });
+            document.getElementById(`edit-prod-${newKey}`)?.addEventListener('click', () => {
+                currentEditingKey = newKey;
+                document.getElementById('editProdTitle').value = title;
+                document.getElementById('editProdBrand').value = brand;
+                document.getElementById('editProdPrice').value = price;
+                document.getElementById('editProdSalePrice').value = '';
+                document.getElementById('editProductModal').classList.add('active');
+            });
+
+            document.getElementById('prodLoading').style.display = 'none';
+            document.getElementById('prodTitle').value = '';
+            document.getElementById('prodSizes').value = '';
+            document.getElementById('prodPinned').checked = false;
+        } else { alert('Լրացրու բոլոր դաշտերը!'); }
+    });
+
+    // Edit save
+    document.getElementById('saveProductBtn').addEventListener('click', () => {
+        if (currentEditingKey) {
+            const title = document.getElementById('editProdTitle').value.trim();
+            const brand = document.getElementById('editProdBrand').value.trim();
+            const price = document.getElementById('editProdPrice').value.trim();
+            const salePriceRaw = document.getElementById('editProdSalePrice').value.trim();
+            if (title && brand && price) {
+                update(ref(db, `products/${currentEditingKey}`), {
+                    title, brand, price: Number(price), salePrice: salePriceRaw !== "" ? Number(salePriceRaw) : ""
+                }).then(() => {
+                    // Թարմացնում ենք card-ի անվանումն ու բրենդը UI-ում
+                    const card = document.getElementById(`pcard-${currentEditingKey}`);
+                    if (card) {
+                        const h4 = card.querySelector('h4');
+                        if (h4) {
+                            const pinnedSpan = h4.querySelector('span');
+                            h4.innerHTML = (pinnedSpan ? pinnedSpan.outerHTML + ' ' : '') + title;
+                        }
+                        const p = card.querySelector('.item-info p');
+                        if (p) p.textContent = brand + ' [' + (productsCache[currentEditingKey]?.gender || 'Unisex') + ']';
+                    }
+                    if (productsCache[currentEditingKey]) {
+                        productsCache[currentEditingKey].title = title;
+                        productsCache[currentEditingKey].brand = brand;
+                        productsCache[currentEditingKey].price = Number(price);
+                        productsCache[currentEditingKey].salePrice = salePriceRaw !== "" ? Number(salePriceRaw) : "";
+                    }
+                    document.getElementById('editProductModal').classList.remove('active');
+                    currentEditingKey = null;
+                });
+            }
+        }
+    });
+
+    document.getElementById('closeEditModal')?.addEventListener('click', () => {
+        document.getElementById('editProductModal').classList.remove('active');
+        currentEditingKey = null;
+    });
+
+
+    // ─── ORDERS — Paginated Infinite Scroll ───────────────────────────────────
+    let ordersOldestKey = null;
+    let ordersLoading = false;
+    let ordersAllLoaded = false;
+    let ordersTotalCount = 0; // badge-ի համար
+
+    // Badge-ի համար onValue (թեթև — միայն count)
+    onValue(ref(db, 'orders'), (snapshot) => {
+        const data = snapshot.val() || {};
+        ordersTotalCount = Object.keys(data).length;
+        document.getElementById('orders-badge').innerText = ordersTotalCount;
+    });
+
+    function renderOrderCards(items) {
+        const list = document.getElementById('adminOrdersList');
+        items.forEach(({ key, o }) => {
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            card.id = `ocard-${key}`;
+            card.style.cssText = 'border:1px solid #eee; padding:15px; margin-bottom:10px; border-radius:8px;';
+            card.innerHTML = `
+                <p><b>Հաճախորդ:</b> ${o.name} (${o.phone})</p>
+                <p><b>Պատվեր:</b> ${o.items}</p>
+                <b style="color:#000;">${o.total} AMD</b>
+                <button class="btn-complete" id="del-o-${key}" style="float:right; background:#28a745; color:#fff; border:none; padding:5px 10px; cursor:pointer;">Ավարտել</button>`;
+            list.appendChild(card);
+
+            document.getElementById(`del-o-${key}`)?.addEventListener('click', () => {
+                remove(ref(db, `orders/${key}`));
+                document.getElementById(`ocard-${key}`)?.remove();
+            });
+        });
+    }
+
+    async function loadMoreOrders() {
+        if (ordersLoading || ordersAllLoaded) return;
+        ordersLoading = true;
+        document.getElementById('orders-spinner').classList.add('visible');
+
+        let q;
+        if (ordersOldestKey === null) {
+            q = query(ref(db, 'orders'), orderByKey(), limitToLast(PAGE_SIZE));
+        } else {
+            q = query(ref(db, 'orders'), orderByKey(), endBefore(ordersOldestKey), limitToLast(PAGE_SIZE));
+        }
+
+        const snapshot = await get(q);
+        const data = snapshot.val() || {};
+        const keys = Object.keys(data);
+
+        if (keys.length === 0) {
+            ordersAllLoaded = true;
+            document.getElementById('orders-spinner').classList.remove('visible');
+            document.getElementById('orders-all-loaded').classList.add('visible');
+            ordersLoading = false;
+            return;
+        }
+
+        const sortedKeys = keys.sort();
+        ordersOldestKey = sortedKeys[0];
+
+        const toRender = sortedKeys.reverse().map(key => ({ key, o: data[key] }));
+        renderOrderCards(toRender);
+
+        if (keys.length < PAGE_SIZE) {
+            ordersAllLoaded = true;
+            document.getElementById('orders-all-loaded').classList.add('visible');
+        }
+
+        document.getElementById('orders-spinner').classList.remove('visible');
+        ordersLoading = false;
+    }
+
+    // IntersectionObserver — orders sentinel
+    const ordersObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            loadMoreOrders();
+        }
+    }, { threshold: 0.1 });
+    ordersObserver.observe(document.getElementById('orders-sentinel'));
+
+
+    // ─── TAB switching ────────────────────────────────────────────────────────
+    // Orders tab-ը մտնելիս — lazy load կատարում ենք եթե դեռ չի ստացվել
+    let ordersTabInitialized = false;
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.tab).classList.add('active');
+
+            // Orders tab-ի առաջին բացելիս — trigger ենք load
+            if (btn.dataset.tab === 'orders-tab' && !ordersTabInitialized) {
+                ordersTabInitialized = true;
+                loadMoreOrders();
+            }
+        });
+    });
+
+    // Products-ը load ենք անմիջապես (active tab է)
+    loadMoreProducts();
+
+</script>
+</body>
+</html>
