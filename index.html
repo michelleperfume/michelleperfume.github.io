@@ -81,6 +81,20 @@
         .cart-item-price { font-weight: 700; color: #000; white-space: nowrap; }
         .btn-remove-cart { background: none; border: none; color: #ff3b30; cursor: pointer; font-size: 16px; margin-left: 10px; font-weight: bold; }
         .cart-empty-text { text-align: center; color: #888; padding: 20px 0; font-size: 15px; }
+
+    /* Սլայդերի նկարների չափսերի կարգավորում */
+.heroSwiper {
+    width: 100%;
+    max-width: 600px; /* Սա սահմանափակում է լայնությունը, որ համակարգչով չձգվի */
+    margin: 0 auto;
+}
+
+.swiper-slide img {
+    width: 100%;
+    height: 350px; /* Սա ֆիքսում է բարձրությունը */
+    object-fit: cover; /* Նկարը չի ձգվում, այլ կտրվում է ըստ չափսի */
+    border-radius: 12px;
+}
     </style>
 </head>
 <body>
@@ -230,14 +244,19 @@
             });
 
             if (swiperInstance) swiperInstance.destroy();
+       
             
             swiperInstance = new Swiper('.heroSwiper', { 
                 loop: slidesCount >= 3, 
                 autoplay: { delay: 4000 }, 
-                pagination: { el: '.swiper-pagination', clickable: true }
+                pagination: { el: '.swiper-pagination', clickable: true },
+                slidesPerView: 1, // Միշտ ցույց տալ 1 սլայդ
+                spaceBetween: 10,
+                grabCursor: true
             });
         });
 
+        
         // --- ԱՊՐԱՆՔՆԵՐԻ ԲԵՌՆՈՒՄ ՈՒ ԳՆԵՐԻ ՀԱՇՎԱՐԿ ---
         let selectedProduct = null;
         let currentPricePerMl = 0;
