@@ -28,7 +28,13 @@
         .product-info { margin-top: 12px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
         .product-title { font-size: 16px; font-weight: 600; margin-bottom: 5px; }
         .product-meta-preview { font-size: 12px; color: #888; margin-bottom: 5px; }
-        .product-price { font-size: 15px; font-weight: 700; color: #1a1a1a; }
+        
+        /* Գների ոճերը քարտի վրա */
+        .product-price-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 15px; }
+        .product-price { font-weight: 700; color: #1a1a1a; }
+        .product-price.has-sale { text-decoration: line-through; color: #888; font-size: 13px; font-weight: 400; }
+        .product-sale-price { font-weight: 700; color: #ff3b30; }
+
         .card-view-btn { background: #000; color: #fff; border: none; padding: 10px; border-radius: 50px; font-weight: 500; font-size: 13px; width: 100%; margin-top: 10px; }
 
         /* Order & Admin Modal */
@@ -49,7 +55,12 @@
 
         .dynamic-price-box { background: #eef2f5; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 5px; margin-top: 15px;}
         .dynamic-price-box .price-label { font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 1px;}
-        .dynamic-price-box .price-value { font-size: 24px; font-weight: 700; color: #000; }
+        
+        /* Մոդալի ներսի դինամիկ գների ոճերը */
+        .modal-prices-display { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 5px; }
+        .price-value { font-size: 24px; font-weight: 700; color: #000; }
+        .price-value.old-struck { text-decoration: line-through; color: #888; font-size: 18px; font-weight: 500; }
+        .price-value.new-sale { color: #ff3b30; }
 
         .credit-hint { font-size: 12px; color: #777777; text-align: center; margin-bottom: 15px; font-weight: 500; display: block; }
 
@@ -125,7 +136,11 @@
                 
                 <div class="dynamic-price-box">
                     <div class="price-label">Ընդհանուր Արժեքը</div>
-                    <span class="price-value" id="detPrice">0</span> <span style="font-weight: 600; color: #000;">AMD</span>
+                    <div class="modal-prices-display">
+                        <span class="price-value" id="detPriceOld"></span>
+                        <span class="price-value" id="detPrice">0</span> 
+                        <span style="font-weight: 600; color: #000;">AMD</span>
+                    </div>
                 </div>
                 <span class="credit-hint">* ապառիկի ձևակերպում</span>
             </div>
@@ -211,13 +226,14 @@
             swiperInstance = new Swiper('.heroSwiper', { loop: true, autoplay: { delay: 4000 }, pagination: { el: '.swiper-pagination', clickable: true }});
         });
 
-        // --- ⚡ ՀԱՄԱԿԱՐԳՎԱԾ ՈՒ ՕՊՏԻՄԱԼԱՑՎԱԾ ԱՊՐԱՆՔՆԵՐԻ ԲԵՌՆՈՒՄ (PAGINATION / SCROLL) ---
+        // --- ԱՊՐԱՆՔՆԵՐԻ ԲԵՌՆՈՒՄ ՈՒ ԳՆԵՐԻ ՀԱՇՎԱՐԿ ---
         let selectedProduct = null;
         let currentPricePerMl = 0;
+        let currentSalePricePerMl = 0; // 1ml-ի զեղչված գինը
         
-        let lastLoadedKey = null; // Ֆիքսում է վերջին բեռնված ապրանքի Firebase ID-ն
-        let isLoadingProducts = false; // Թույլ չի տալիս նույն պահին մի քանի անգամ կանչել բազան
-        const PRODUCTS_LIMIT = 20; // Ամեն անգամ քանի հատ բերի
+        let lastLoadedKey = null;
+        let isLoadingProducts = false;
+        const PRODUCTS_LIMIT = 20;
         const productsRef = ref(db, 'products');
 
         async function loadProductsPage() {
@@ -226,10 +242,8 @@
 
             let dbQuery;
             if (!lastLoadedKey) {
-                // Առաջին անգամ բերում է սկզբի 20-ը
                 dbQuery = query(productsRef, limitToFirst(PRODUCTS_LIMIT));
             } else {
-                // Հաջորդ անգամներին բերում է վերջին ID-ից հետոյի 20-ը
                 dbQuery = query(productsRef, startAfter(lastLoadedKey), limitToFirst(PRODUCTS_LIMIT));
             }
 
@@ -239,13 +253,23 @@
                     const data = snapshot.val();
                     const keys = Object.keys(data);
                     
-                    // Թարմացնում ենք վերջին ID-ն հաջորդ scroll-ի համար
                     lastLoadedKey = keys[keys.length - 1];
-
                     const container = document.getElementById('products-container');
 
                     keys.forEach(key => {
                         const prod = data[key];
+                        
+                        // Որոշում ենք՝ քարտի վրա գինը սովորական ցույց տա, թե՞ կարմիրով (զեղչված)
+                        let priceHTML = '';
+                        if (prod.salePrice && Number(prod.salePrice) > 0) {
+                            priceHTML = `
+                                <span class="product-price has-sale">${prod.price} AMD</span>
+                                <span class="product-sale-price">${prod.salePrice} AMD</span>
+                            `;
+                        } else {
+                            priceHTML = `<span class="product-price">${prod.price} AMD</span>`;
+                        }
+
                         const card = document.createElement('div');
                         card.className = 'product-card';
                         card.innerHTML = `
@@ -255,7 +279,9 @@
                                     <h3 class="product-title">${prod.title}</h3>
                                     <div class="product-meta-preview">${prod.brand || ''} | ${prod.ml || ''} մլ</div>
                                 </div>
-                                <p class="product-price">${prod.price} AMD</p>
+                                <div class="product-price-box">
+                                    ${priceHTML}
+                                </div>
                                 <button class="card-view-btn">Մանրամասն</button>
                             </div>
                         `;
@@ -270,7 +296,16 @@
                             
                             const baseMl = Number(prod.ml);
                             const basePrice = Number(prod.price);
+                            
+                            // Հաշվում ենք 1մլ-ի սովորական գինը
                             currentPricePerMl = basePrice / baseMl;
+                            
+                            // Հաշվում ենք 1մլ-ի զեղչված գինը (եթե կա)
+                            if (prod.salePrice && Number(prod.salePrice) > 0) {
+                                currentSalePricePerMl = Number(prod.salePrice) / baseMl;
+                            } else {
+                                currentSalePricePerMl = 0;
+                            }
 
                             const mlSelect = document.getElementById('detMlSelect');
                             mlSelect.innerHTML = '';
@@ -287,7 +322,9 @@
 
                             const initialMl = optionsArray[0];
                             mlSelect.value = initialMl;
-                            document.getElementById('detPrice').innerText = Math.round(initialMl * currentPricePerMl);
+                            
+                            // Թարմացնում ենք գինը մոդալի մեջ ըստ զեղչի կարգավիճակի
+                            updateModalPriceDisplay(initialMl);
                             
                             document.getElementById('orderModal').classList.add('active');
                         });
@@ -302,22 +339,43 @@
             }
         }
 
-        // Լսում ենք Scroll-ը. երբ էջի ներքևին հասնելուն մնում է 600px, ավտոմատ կանչում է նորերը
+        // Մոդալի ներսի գների դինամիկ փոփոխման ֆունկցիան
+        function updateModalPriceDisplay(ml) {
+            const oldPriceContainer = document.getElementById('detPriceOld');
+            const currentPriceContainer = document.getElementById('detPrice');
+
+            if (currentSalePricePerMl > 0) {
+                // Եթե կա զեղչ
+                const calculatedOldPrice = Math.round(ml * currentPricePerMl);
+                const calculatedNewPrice = Math.round(ml * currentSalePricePerMl);
+                
+                oldPriceContainer.innerText = calculatedOldPrice + " AMD";
+                oldPriceContainer.className = "price-value old-struck";
+                oldPriceContainer.style.display = "inline";
+                
+                currentPriceContainer.innerText = calculatedNewPrice;
+                currentPriceContainer.className = "price-value new-sale";
+            } else {
+                // Եթե սովորական գին է
+                const calculatedPrice = Math.round(ml * currentPricePerMl);
+                
+                oldPriceContainer.style.display = "none";
+                currentPriceContainer.innerText = calculatedPrice;
+                currentPriceContainer.className = "price-value";
+            }
+        }
+
         window.addEventListener('scroll', () => {
             if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 600) {
                 loadProductsPage();
             }
         });
 
-        // Առաջին 20 ապրանքի ավտոմատ բեռնում էջը բացվելիս
         loadProductsPage();
 
-
-        // ԴԻՆԱՄԻԿ ԳՆԻ ՓՈՓՈԽՈՒԹՅՈՒՆ
+        // Լսում ենք մլ-ի ընտրության փոփոխությունը մոդալում
         document.getElementById('detMlSelect').addEventListener('change', function() {
-            const selectedMl = Number(this.value);
-            const calculatedPrice = Math.round(selectedMl * currentPricePerMl);
-            document.getElementById('detPrice').innerText = calculatedPrice;
+            updateModalPriceDisplay(Number(this.value));
         });
 
         // Ապրանք Ավելացնել Զամբյուղի մեջ
@@ -342,7 +400,7 @@
             }
         });
 
-        // Զամբյուղի Վիզուալ Թարմացում (UI)
+        // Զամբյուղի UI Թարմացում
         function updateCartUI() {
             document.getElementById('cartCount').innerText = cart.length;
             const container = document.getElementById('cartItemsContainer');
@@ -384,7 +442,7 @@
             });
         }
 
-        // 🌟 EMAIL ՈՒՂԱՐԿԵԼՈՒ ՖՈՒՆԿՑԻԱ
+        // EMAIL ՈՒՂԱՐԿՈՒՄ
         function sendEmailNotification(name, phone, items, total, date) {
             const templateParams = {
                 customer_name: name,
@@ -403,19 +461,17 @@
                 });
         }
 
-        // Պատվեր Զամբյուղի միջից
+        // Պատվեր Զամբյուղից
         document.getElementById('submitCartOrderBtn').addEventListener('click', () => {
             const name = document.getElementById('cartCustomerName').value.trim();
             const phone = document.getElementById('cartCustomerPhone').value.trim();
 
             if (name && phone && cart.length > 0) {
                 const currentDate = new Date().toLocaleDateString('hy-AM');
-                
                 const itemsTextArray = cart.map(item => `${item.brand} ${item.title} (${item.ml}մլ)` );
                 const finalItemsString = itemsTextArray.join(' + ');
                 const finalTotal = Number(document.getElementById('cartTotalSum').innerText);
 
-                // 1. Գրանցում Firebase-ում
                 push(ref(db, 'orders'), {
                     name: name,
                     phone: phone,
@@ -423,9 +479,7 @@
                     total: finalTotal,
                     date: currentDate
                 }).then(() => {
-                    // 2. Ուղարկում ենք Email ադմինին
                     sendEmailNotification(name, phone, finalItemsString, finalTotal, currentDate);
-
                     alert('Ձեր զամբյուղի պատվերն ընդունված է։ Շնորհակալություն։');
                     cart = [];
                     updateCartUI();
@@ -438,7 +492,6 @@
             }
         });
 
-        // Զամբյուղի Մոդալի Բացել/Փակել
         const cartModal = document.getElementById('cartModal');
         document.getElementById('openCartBtn').addEventListener('click', (e) => {
             e.preventDefault();
@@ -447,7 +500,6 @@
         });
         document.getElementById('closeCartModalBtn').addEventListener('click', () => cartModal.classList.remove('active'));
 
-        // Close Modals
         const orderModal = document.getElementById('orderModal');
         const adminModal = document.getElementById('adminLoginModal');
 
@@ -460,7 +512,7 @@
             if (e.target === cartModal) cartModal.classList.remove('active');
         });
 
-        // Submit Order (Արագ գնում՝ "Գնել հիմա")
+        // Գնել հիմա
         document.getElementById('submitOrderBtn').addEventListener('click', () => {
             const name = document.getElementById('customerName').value.trim();
             const phone = document.getElementById('customerPhone').value.trim();
@@ -468,11 +520,9 @@
             if(name && phone && selectedProduct) {
                 const finalMl = document.getElementById('detMlSelect').value;
                 const finalPrice = document.getElementById('detPrice').innerText;
-                
                 const currentDate = new Date().toLocaleDateString('hy-AM');
                 const orderItemInfo = `${selectedProduct.brand || ''} ${selectedProduct.title} (${finalMl} մլ) [${selectedProduct.gender || 'Unisex'}]`;
 
-                // 1. Գրանցում Firebase-ում
                 push(ref(db, 'orders'), {
                     name: name,
                     phone: phone,
@@ -480,9 +530,7 @@
                     total: Number(finalPrice),
                     date: currentDate
                 }).then(() => {
-                    // 2. Ուղարկում ենք Email ադմինին
                     sendEmailNotification(name, phone, orderItemInfo, finalPrice, currentDate);
-
                     alert('Ձեր պատվերն ընդունված է։ Շնորհակալություն գնումների համար:');
                     document.getElementById('customerName').value = '';
                     document.getElementById('customerPhone').value = '';
@@ -493,7 +541,7 @@
             }
         });
 
-        // Ադմին Մոդալի կառավարում
+        // Ադմին Մուտք
         document.querySelector('.logo').addEventListener('click', (e) => {
             e.preventDefault();
             adminModal.classList.add('active');
