@@ -109,6 +109,19 @@ ul {
     transition: all 0.3s cubic-bezier(0.77, 0, 0.175, 1);
 }
 
+
+.about-btn-link {
+    font-weight: 500;
+    color: #333 !important;
+    transition: 0.3s;
+}
+.about-btn-link:hover {
+    color: #000 !important;
+    text-decoration: underline;
+}
+
+
+
 /* Բուրգերի անիմացիան (X դառնալը) */
 .burger-menu.open span:nth-child(1) {
     transform: translateY(6px) rotate(45deg);
