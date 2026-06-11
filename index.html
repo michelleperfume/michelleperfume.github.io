@@ -134,6 +134,12 @@
                 <button class="filter-btn" data-filter="Female">Կանացի</button>
                 <button class="filter-btn" data-filter="Male">Տղամարդու</button>
                 <button class="filter-btn" data-filter="Unisex">Unisex</button>
+                
+                <select id="priceSort" style="padding: 8px; border-radius: 20px; border: 1px solid #ddd; outline: none;">
+                    <option value="default">Գինը</option>
+                    <option value="asc">Աճման</option>
+                    <option value="desc">Նվազման</option>
+                </select>
             </div>
             <div class="products-grid" id="products-container"></div>
         </div>
@@ -261,22 +267,39 @@
             });
         });
 
-        // ---- ՖԻԼՏՐՄԱՆ ՖՈՒՆԿՑԻԱ ----
-        function filterProducts(filterValue) {
-            activeFilter = filterValue;
+    // ---- ՖԻԼՏՐՄԱՆ ԵՎ ՍՈՐՏԱՎՈՐՄԱՆ ՖՈՒՆԿՑԻԱ ----
+function filterProducts(filterValue) {
+    if (filterValue) activeFilter = filterValue;
 
-            // Թարմացնում ենք կոճակների active վիճակը
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.filter === filterValue);
-            });
+    // Թարմացնում ենք կոճակների active վիճակը
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === activeFilter);
+    });
 
-            // Ֆիլտրում ենք allProducts-ից
-            const filtered = filterValue === 'all'
-                ? allProducts
-                : allProducts.filter(p => (p.gender || 'Unisex') === filterValue);
+    // 1. Ֆիլտրում ըստ սեռի
+    let filtered = activeFilter === 'all'
+        ? [...allProducts]
+        : allProducts.filter(p => (p.gender || 'Unisex') === activeFilter);
 
-            renderProducts(filtered);
-        }
+    // 2. Սորտավորում ըստ գնի
+    const sortValue = document.getElementById('priceSort') ? document.getElementById('priceSort').value : 'default';
+    
+    if (sortValue === 'asc') {
+        filtered.sort((a, b) => {
+            const priceA = Number(a.salePrice && a.salePrice > 0 ? a.salePrice : a.price);
+            const priceB = Number(b.salePrice && b.salePrice > 0 ? b.salePrice : b.price);
+            return priceA - priceB;
+        });
+    } else if (sortValue === 'desc') {
+        filtered.sort((a, b) => {
+            const priceA = Number(a.salePrice && a.salePrice > 0 ? a.salePrice : a.price);
+            const priceB = Number(b.salePrice && b.salePrice > 0 ? b.salePrice : b.price);
+            return priceB - priceA;
+        });
+    }
+
+    renderProducts(filtered);
+}
 
         // ---- ԱՊՐԱՆՔՆԵՐԻ ՑՈՒՑԱԴՐՄԱՆ ՖՈՒՆԿՑԻԱ ----
         function renderProducts(products) {
@@ -623,6 +646,12 @@
                 alert("Սխալ գաղտնաբառ");
             }
         }
+
+
+        // ---- ԳՆԱՅԻՆ ՍՈՐՏԱՎՈՐՈՒՄ ----
+document.getElementById('priceSort').addEventListener('change', () => {
+    filterProducts(); 
+});
     </script>
 </body>
 </html>
