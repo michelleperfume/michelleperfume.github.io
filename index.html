@@ -128,12 +128,20 @@
         </div>
     </section>
 
-    <section class="products-section" id="catalog">
-        <div class="container">
-            <h2 class="section-title">Մեր Տեսականին</h2>
-            <div class="products-grid" id="products-container"></div>
+<section class="products-section" id="catalog">
+    <div class="container">
+        <h2 class="section-title">Մեր Տեսականին</h2>
+
+        <div class="filters" style="text-align: center; margin-bottom: 30px;">
+            <button class="filter-btn active" onclick="filterProducts('all', this)">Բոլորը</button>
+            <button class="filter-btn" onclick="filterProducts('Female', this)">Կանացի</button>
+            <button class="filter-btn" onclick="filterProducts('Male', this)">Տղամարդու</button>
+            <button class="filter-btn" onclick="filterProducts('Unisex', this)">Unisex</button>
         </div>
-    </section>
+        <div class="products-grid" id="products-container"></div>
+    </div>
+</section>
+    
 
     <div class="modal" id="orderModal">
         <div class="modal-content">
