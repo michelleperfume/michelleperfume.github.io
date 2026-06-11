@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Michelle Perfume | Official Store</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <link rel="stylesheet" href="style.css">
 
@@ -212,24 +212,36 @@
             document.getElementById('mobileMenu').classList.toggle('open');
         });
 
-        // Load Slider
+        // Load Slider (Ուղղված տարբերակ)
         let swiperInstance = null;
         onValue(ref(db, 'slider'), (snapshot) => {
             const data = snapshot.val() || {};
             const wrapper = document.getElementById('hero-slider-wrapper');
             wrapper.innerHTML = '';
+            
+            const keys = Object.keys(data);
+            const slidesCount = keys.length;
+
+            if (slidesCount === 0) return;
+
             Object.values(data).forEach(item => {
                 const url = typeof item === 'object' ? item.img : item;
                 wrapper.innerHTML += `<div class="swiper-slide"><img src="${url}" alt="Michelle"></div>`;
             });
+
             if (swiperInstance) swiperInstance.destroy();
-            swiperInstance = new Swiper('.heroSwiper', { loop: true, autoplay: { delay: 4000 }, pagination: { el: '.swiper-pagination', clickable: true }});
+            
+            swiperInstance = new Swiper('.heroSwiper', { 
+                loop: slidesCount >= 3, 
+                autoplay: { delay: 4000 }, 
+                pagination: { el: '.swiper-pagination', clickable: true }
+            });
         });
 
         // --- ԱՊՐԱՆՔՆԵՐԻ ԲԵՌՆՈՒՄ ՈՒ ԳՆԵՐԻ ՀԱՇՎԱՐԿ ---
         let selectedProduct = null;
         let currentPricePerMl = 0;
-        let currentSalePricePerMl = 0; // 1ml-ի զեղչված գինը
+        let currentSalePricePerMl = 0; 
         
         let lastLoadedKey = null;
         let isLoadingProducts = false;
@@ -256,10 +268,20 @@
                     lastLoadedKey = keys[keys.length - 1];
                     const container = document.getElementById('products-container');
 
-                    keys.forEach(key => {
-                        const prod = data[key];
-                        
-                        // Որոշում ենք՝ քարտի վրա գինը սովորական ցույց տա, թե՞ կարմիրով (զեղչված)
+                    // 1. Սարքում ենք մասսիվ սորտավորման համար
+                    let productsList = keys.map(key => ({
+                        id: key,
+                        ...data[key]
+                    }));
+
+                    // 2. ՍՈՐՏԱՎՈՐՈՒՄ. Եթե pinned-ը true է, գալիս է ամենավերևում
+                    productsList.sort((a, b) => {
+                        const aPinned = a.pinned === true ? 1 : 0;
+                        const bPinned = b.pinned === true ? 1 : 0;
+                        return bPinned - aPinned;
+                    });
+
+                    productsList.forEach(prod => {
                         let priceHTML = '';
                         if (prod.salePrice && Number(prod.salePrice) > 0) {
                             priceHTML = `
@@ -270,9 +292,14 @@
                             priceHTML = `<span class="product-price">${prod.price} AMD</span>`;
                         }
 
+                        // 3. Եթե առաջնային է, VIP նշան ենք դնում
+                        const pinnedBadge = prod.pinned ? `<span style="position:absolute; background:#ff3b30; color:#fff; font-size:10px; padding:3px 8px; border-radius:20px; margin:5px; font-weight:700; z-index:1;">TOP</span>` : '';
+
                         const card = document.createElement('div');
                         card.className = 'product-card';
+                        card.style.position = 'relative'; 
                         card.innerHTML = `
+                            ${pinnedBadge}
                             <img src="${prod.img}" class="product-img" loading="lazy" alt="${prod.title}">
                             <div class="product-info">
                                 <div>
@@ -288,7 +315,6 @@
 
                         card.addEventListener('click', () => {
                             selectedProduct = prod;
-                            
                             document.getElementById('modalProductImg').src = prod.img;
                             document.getElementById('modalProductTitle').innerText = prod.title;
                             document.getElementById('detBrand').innerText = prod.brand || '---';
@@ -296,11 +322,8 @@
                             
                             const baseMl = Number(prod.ml);
                             const basePrice = Number(prod.price);
-                            
-                            // Հաշվում ենք 1մլ-ի սովորական գինը
                             currentPricePerMl = basePrice / baseMl;
                             
-                            // Հաշվում ենք 1մլ-ի զեղչված գինը (եթե կա)
                             if (prod.salePrice && Number(prod.salePrice) > 0) {
                                 currentSalePricePerMl = Number(prod.salePrice) / baseMl;
                             } else {
@@ -309,7 +332,6 @@
 
                             const mlSelect = document.getElementById('detMlSelect');
                             mlSelect.innerHTML = '';
-
                             let optionsArray = prod.sizes && Array.isArray(prod.sizes) ? prod.sizes : [baseMl];
                             optionsArray.sort((a, b) => a - b);
 
@@ -322,10 +344,7 @@
 
                             const initialMl = optionsArray[0];
                             mlSelect.value = initialMl;
-                            
-                            // Թարմացնում ենք գինը մոդալի մեջ ըստ զեղչի կարգավիճակի
                             updateModalPriceDisplay(initialMl);
-                            
                             document.getElementById('orderModal').classList.add('active');
                         });
 
@@ -345,7 +364,6 @@
             const currentPriceContainer = document.getElementById('detPrice');
 
             if (currentSalePricePerMl > 0) {
-                // Եթե կա զեղչ
                 const calculatedOldPrice = Math.round(ml * currentPricePerMl);
                 const calculatedNewPrice = Math.round(ml * currentSalePricePerMl);
                 
@@ -356,7 +374,6 @@
                 currentPriceContainer.innerText = calculatedNewPrice;
                 currentPriceContainer.className = "price-value new-sale";
             } else {
-                // Եթե սովորական գին է
                 const calculatedPrice = Math.round(ml * currentPricePerMl);
                 
                 oldPriceContainer.style.display = "none";
@@ -373,7 +390,6 @@
 
         loadProductsPage();
 
-        // Լսում ենք մլ-ի ընտրության փոփոխությունը մոդալում
         document.getElementById('detMlSelect').addEventListener('change', function() {
             updateModalPriceDisplay(Number(this.value));
         });
