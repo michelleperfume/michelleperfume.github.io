@@ -44,7 +44,7 @@
                 <input type="file" id="sliderFileInput" accept="image/*" style="padding: 8px;">
                 <button id="addSliderBtn" class="btn-dark">Ավելացնել Սլայդերում</button>
             </div>
-            <p id="sliderLoading" class="loading-text">Նկարը օպտիմալացվում և բեռնվում է...</p>
+            <p id="sliderLoading" class="loading-text">Նկարը օպտիմալացվում և պահվում է բազայում...</p>
             <div class="grid-list" id="adminSliderList"></div>
         </div>
 
@@ -72,7 +72,7 @@
                     <input type="file" id="prodFileInput" accept="image/*" style="padding: 8px;">
                 </div>
                 <button id="addProductBtn" class="btn-dark" style="margin-top: 15px;">Ավելացնել Կատալոգում</button>
-                <p id="prodLoading" class="loading-text">4K նկարը օպտիմալացվում և բեռնվում է...</p>
+                <p id="prodLoading" class="loading-text">Նկարը օպտիմալացվում և պահվում է բազայում...</p>
             </div>
             <div class="grid-list" id="adminProductsList"></div>
         </div>
@@ -125,8 +125,8 @@
     const db = getDatabase(app);
     let currentEditingKey = null;
 
-    // ⚡ 4K ՆԿԱՐՆԵՐԻ ԱՎՏՈՄԱՏ ՓՈՔՐԱՑՈՒՄ ԲՐԱՈՒԶԵՐՈՒՄ
-    function resizeAndCompressImage(file) {
+    // ⚡ ԽԵԼԱՑԻ ՍԵՂՄՈՒՄ ՈՒ BASE64-Ի ՎԵՐԱԾՈՒՄ (ԼՐԻՎ ԱՎՏՈՄԱՏ ՈՒ ԱՌԱՆՑ ՍԽԱԼՆԵՐԻ)
+    function resizeAndCompressToBase64(file) {
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -135,11 +135,12 @@
                 img.src = event.target.result;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
+                    
+                    // Բերում ենք կատալոգի համար իդեալական 600px լայնության (ծավալը կտրուկ քչացնելու համար)
+                    const MAX_WIDTH = 600;
                     let width = img.width;
                     let height = img.height;
 
-                    // Եթե նկարը 4K է կամ շատ մեծ, բերում ենք վեբի համար մաքսիմալ 1080px-ի
-                    const MAX_WIDTH = 1080;
                     if (width > MAX_WIDTH) {
                         height = Math.round((height * MAX_WIDTH) / width);
                         width = MAX_WIDTH;
@@ -150,30 +151,15 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    // Վերածում ենք թեթև WebP կամ JPEG ֆայլի (Որակը 85%)
-                    canvas.toBlob((blob) => {
-                        resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".webp", { type: "image/webp" }));
-                    }, "image/webp", 0.85);
+                    // Սարքում ենք WebP ֆորմատ՝ 70% որակով (ծավալը դառնում է ընդամենը ~40-50 KB)
+                    const base64Data = canvas.toDataURL("image/webp", 0.70);
+                    resolve(base64Data);
                 };
             };
         });
     }
 
-// 🔒 ՊԼԱՆ Բ. 100% ԵՐԱՇԽԱՎՈՐՎԱԾ ՏԱՐԲԵՐԱԿ՝ ԱՌԱՆՑ ՈՐԵՎԷ ԱՐՏԱՔԻՆ ՍԵՐՎԵՐԻ
-    async function uploadImageToCloud(file) {
-        // 1. Սեղմում ենք նկարը, որ դառնա գերթեթև
-        const compressedFile = await resizeAndCompressImage(file);
-
-        // 2. Վերածում ենք Base64 տեքստի, որը ուղիղ կպահվի Firebase-ում
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(compressedFile);
-            reader.onloadend = () => {
-                resolve(reader.result); // Սա վերադարձնում է նկարի տեքստային կոդը (data:image/webp;base64,...)
-            };
-        });
-    }
-    // --- Սլայդերի կոդ ---
+    // --- Սլայդերի համակարգ ---
     const sliderRef = ref(db, 'slider');
     onValue(sliderRef, (snapshot) => {
         const data = snapshot.val() || {};
@@ -181,7 +167,7 @@
         list.innerHTML = '';
         Object.keys(data).forEach(key => {
             const item = data[key];
-            list.innerHTML += `<div class="item-card"><img src="${item.img}" width="80"><button class="btn-delete" id="del-s-${key}">Ջնջել</button></div>`;
+            list.innerHTML += `<div class="item-card"><img src="${item.img}" width="80" style="height:50px; object-fit:cover; border-radius:4px;"><button class="btn-delete" id="del-s-${key}">Ջնջել</button></div>`;
         });
         Object.keys(data).forEach(key => {
             document.getElementById(`del-s-${key}`)?.addEventListener('click', () => remove(ref(db, `slider/${key}`)));
@@ -192,17 +178,20 @@
         const file = document.getElementById('sliderFileInput').files[0];
         if(file) {
             document.getElementById('sliderLoading').style.display = 'block';
-            const imgUrl = await uploadImageToCloud(file);
-            if(imgUrl) {
-                push(sliderRef, { img: imgUrl }).then(() => {
-                    document.getElementById('sliderLoading').style.display = 'none';
-                    document.getElementById('sliderFileInput').value = '';
-                });
-            } else { document.getElementById('sliderLoading').style.display = 'none'; }
+            // Նկարը տեղում վերածում ենք սեղմված Base64 տեքստի
+            const base64Img = await resizeAndCompressToBase64(file);
+            
+            push(sliderRef, { img: base64Img }).then(() => {
+                document.getElementById('sliderLoading').style.display = 'none';
+                document.getElementById('sliderFileInput').value = '';
+            }).catch(err => {
+                console.error(err);
+                document.getElementById('sliderLoading').style.display = 'none';
+            });
         } else { alert('Ընտրիր սլայդերի նկարը։'); }
     });
 
-    // --- Ապրանքների կոդ ---
+    // --- Ապրանքների կատալոգի համակարգ ---
     const productsRef = ref(db, 'products');
     onValue(productsRef, (snapshot) => {
         const data = snapshot.val() || {};
@@ -243,6 +232,7 @@
         });
     });
 
+    // Խմբագրված ապրանքը պահպանել
     document.getElementById('saveProductBtn').addEventListener('click', () => {
         if (currentEditingKey) {
             const title = document.getElementById('editProdTitle').value.trim();
@@ -267,6 +257,7 @@
         currentEditingKey = null;
     });
 
+    // Նոր ապրանք ավելացնել
     document.getElementById('addProductBtn').addEventListener('click', async () => {
         const title = document.getElementById('prodTitle').value.trim();
         const brand = document.getElementById('prodBrand').value.trim();
@@ -278,26 +269,30 @@
 
         if(title && brand && ml && price && sizesRaw && file) {
             document.getElementById('prodLoading').style.display = 'block';
-            const imgUrl = await uploadImageToCloud(file);
             
-            if(imgUrl) {
-                const sizesArray = sizesRaw.split(',').map(s => Number(s.trim())).filter(s => !isNaN(s) && s > 0);
-                push(productsRef, { 
-                    title, brand, ml: Number(ml), price: Number(price), salePrice: "", sizes: sizesArray, gender, img: imgUrl 
-                }).then(() => {
-                    document.getElementById('prodLoading').style.display = 'none';
-                    document.getElementById('prodTitle').value = '';
-                    document.getElementById('prodBrand').value = '';
-                    document.getElementById('prodMl').value = '';
-                    document.getElementById('prodPrice').value = '';
-                    document.getElementById('prodSizes').value = '';
-                    document.getElementById('prodFileInput').value = '';
-                });
-            } else { document.getElementById('prodLoading').style.display = 'none'; }
+            // Նկարը տեղում դառնում է գերթեթև Base64 տեքստ
+            const base64Img = await resizeAndCompressToBase64(file);
+            
+            const sizesArray = sizesRaw.split(',').map(s => Number(s.trim())).filter(s => !isNaN(s) && s > 0);
+            
+            push(productsRef, { 
+                title, brand, ml: Number(ml), price: Number(price), salePrice: "", sizes: sizesArray, gender, img: base64Img 
+            }).then(() => {
+                document.getElementById('prodLoading').style.display = 'none';
+                document.getElementById('prodTitle').value = '';
+                document.getElementById('prodBrand').value = '';
+                document.getElementById('prodMl').value = '';
+                document.getElementById('prodPrice').value = '';
+                document.getElementById('prodSizes').value = '';
+                document.getElementById('prodFileInput').value = '';
+            }).catch(err => {
+                console.error(err);
+                document.getElementById('prodLoading').style.display = 'none';
+            });
         } else { alert('Լրացրու բոլոր դաշտերը!'); }
     });
 
-    // --- Պատվերներ ---
+    // --- Պատվերների համակարգ ---
     const ordersRef = ref(db, 'orders');
     onValue(ordersRef, (snapshot) => {
         const data = snapshot.val() || {};
@@ -321,7 +316,7 @@
         });
     });
 
-    // Tabs
+    // Տաբերի փոխարկում (Navigation Tabs)
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
