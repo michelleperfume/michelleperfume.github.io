@@ -122,7 +122,7 @@
         <div class="container">
             <h2 class="section-title">Մեր Տեսականին</h2>
             
-<input type="text" id="searchInput" placeholder="Որոնել ապրանքներ..." onkeyup="searchProducts()">
+<input type="text" id="searchInput" placeholder="Որոնել ապրանքներ...">
             <div class="filters" style="text-align: center; margin-bottom: 30px;">
                 <button class="filter-btn active" data-filter="all">Բոլորը</button>
                 <button class="filter-btn" data-filter="Կանացի">Կանացի</button>
@@ -562,20 +562,23 @@
         });
 
 
-function searchProducts() {
-    let input = document.getElementById('searchInput').value.toLowerCase();
-    let productList = document.querySelectorAll('.product-card'); // Ենթադրենք յուրաքանչյուր ապրանք ունի .product-card դաս
+<script>
+    // Այստեղ լինելու են քո մյուս ֆունկցիաները...
 
-    productList.forEach(card => {
-        let title = card.querySelector('h3').innerText.toLowerCase(); // Ենթադրենք ապրանքի անունը h3-ի մեջ է
-        if (title.includes(input)) {
-            card.style.display = ""; // Ցույց տալ
-        } else {
-            card.style.display = "none"; // Թաքցնել
-        }
-    });
-}
-        
+    // Ահա որոնման ֆունկցիան
+    function searchProducts() {
+        let input = document.getElementById('searchInput').value.toLowerCase();
+        let productList = document.querySelectorAll('.product-card'); 
+
+        productList.forEach(card => {
+            let title = card.querySelector('h3').innerText.toLowerCase(); 
+            card.style.display = title.includes(input) ? "" : "none";
+        });
+    }
+
+    // Այս տողն է ապահովում, որ ֆունկցիան կաշխատի
+    document.getElementById('searchInput').addEventListener('keyup', searchProducts);
+</script>   
     </script>
 
 <footer class="footer-section">
