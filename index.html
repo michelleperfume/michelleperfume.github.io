@@ -121,6 +121,8 @@
     <section class="products-section" id="catalog">
         <div class="container">
             <h2 class="section-title">Մեր Տեսականին</h2>
+            
+<input type="text" id="searchInput" placeholder="Որոնել ապրանքներ..." onkeyup="searchProducts()">
             <div class="filters" style="text-align: center; margin-bottom: 30px;">
                 <button class="filter-btn active" data-filter="all">Բոլորը</button>
                 <button class="filter-btn" data-filter="Կանացի">Կանացի</button>
@@ -136,7 +138,6 @@
         </div>
     </section>
 
-<input type="text" id="searchInput" placeholder="Որոնել ապրանքներ..." onkeyup="searchProducts()">
     
     <div class="modal" id="orderModal">
         <div class="modal-content">
@@ -223,19 +224,7 @@
         });
 
 
-function searchProducts() {
-    let input = document.getElementById('searchInput').value.toLowerCase();
-    let productList = document.querySelectorAll('.product-card'); // Ենթադրենք յուրաքանչյուր ապրանք ունի .product-card դաս
 
-    productList.forEach(card => {
-        let title = card.querySelector('h3').innerText.toLowerCase(); // Ենթադրենք ապրանքի անունը h3-ի մեջ է
-        if (title.includes(input)) {
-            card.style.display = ""; // Ցույց տալ
-        } else {
-            card.style.display = "none"; // Թաքցնել
-        }
-    });
-}
 
         
         let swiperInstance = null;
@@ -571,6 +560,22 @@ function searchProducts() {
         document.getElementById('priceSort').addEventListener('change', () => {
             filterProducts();
         });
+
+
+function searchProducts() {
+    let input = document.getElementById('searchInput').value.toLowerCase();
+    let productList = document.querySelectorAll('.product-card'); // Ենթադրենք յուրաքանչյուր ապրանք ունի .product-card դաս
+
+    productList.forEach(card => {
+        let title = card.querySelector('h3').innerText.toLowerCase(); // Ենթադրենք ապրանքի անունը h3-ի մեջ է
+        if (title.includes(input)) {
+            card.style.display = ""; // Ցույց տալ
+        } else {
+            card.style.display = "none"; // Թաքցնել
+        }
+    });
+}
+        
     </script>
 
 <footer class="footer-section">
