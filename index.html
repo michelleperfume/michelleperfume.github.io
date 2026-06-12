@@ -222,6 +222,22 @@
             document.getElementById('mobileMenu').classList.toggle('open');
         });
 
+
+function searchProducts() {
+    let input = document.getElementById('searchInput').value.toLowerCase();
+    let productList = document.querySelectorAll('.product-card'); // Ենթադրենք յուրաքանչյուր ապրանք ունի .product-card դաս
+
+    productList.forEach(card => {
+        let title = card.querySelector('h3').innerText.toLowerCase(); // Ենթադրենք ապրանքի անունը h3-ի մեջ է
+        if (title.includes(input)) {
+            card.style.display = ""; // Ցույց տալ
+        } else {
+            card.style.display = "none"; // Թաքցնել
+        }
+    });
+}
+
+        
         let swiperInstance = null;
         onValue(ref(db, 'slider'), (snapshot) => {
             const data = snapshot.val() || {};
