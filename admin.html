@@ -25,33 +25,22 @@
         .btn-edit-action:hover { background: #0056b3; }
         .item-actions { display: flex; flex-direction: column; gap: 5px; justify-content: center; }
 
+        /* Stock toggle */
+        .stock-toggle-group { display: flex; gap: 8px; margin-bottom: 15px; }
+        .stock-toggle-btn { flex: 1; padding: 10px; border-radius: 8px; border: 2px solid #EAEAEC; background: #fff; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .stock-toggle-btn.in-stock.active { background: #e6f4ea; border-color: #28a745; color: #28a745; }
+        .stock-toggle-btn.out-of-stock.active { background: #fdecea; border-color: #ff3b30; color: #ff3b30; }
+        .stock-toggle-btn:not(.active) { color: #aaa; }
+
+        /* Out of stock badge on card */
+        .out-of-stock-badge { background: #ff3b30; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; }
+
         /* Pagination / Infinite scroll styles */
-        .load-more-sentinel {
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 10px;
-        }
-        .load-more-spinner {
-            display: none;
-            font-size: 13px;
-            color: #007bff;
-            font-weight: 600;
-        }
-        .load-more-spinner.visible {
-            display: block;
-        }
-        .all-loaded-msg {
-            display: none;
-            font-size: 12px;
-            color: #aaa;
-            text-align: center;
-            padding: 10px 0 20px;
-        }
-        .all-loaded-msg.visible {
-            display: block;
-        }
+        .load-more-sentinel { height: 40px; display: flex; align-items: center; justify-content: center; margin-top: 10px; }
+        .load-more-spinner { display: none; font-size: 13px; color: #007bff; font-weight: 600; }
+        .load-more-spinner.visible { display: block; }
+        .all-loaded-msg { display: none; font-size: 12px; color: #aaa; text-align: center; padding: 10px 0 20px; }
+        .all-loaded-msg.visible { display: block; }
     </style>
 </head>
 <body>
@@ -108,7 +97,6 @@
                 <p id="prodLoading" class="loading-text">Նկարը օպտիմալացվում և պահվում է բազայում...</p>
             </div>
 
-            <!-- Products list with infinite scroll sentinels -->
             <div class="grid-list" id="adminProductsList"></div>
             <div class="load-more-sentinel" id="products-sentinel">
                 <span class="load-more-spinner" id="products-spinner">Բեռնվում է...</span>
@@ -118,8 +106,6 @@
 
         <div id="orders-tab" class="tab-content">
             <header class="admin-header"><h1>Ստացված Պատվերներ</h1></header>
-
-            <!-- Orders list with infinite scroll sentinels -->
             <div class="orders-container" id="adminOrdersList"></div>
             <div class="load-more-sentinel" id="orders-sentinel">
                 <span class="load-more-spinner" id="orders-spinner">Բեռնվում է...</span>
@@ -148,6 +134,13 @@
                 <label>Նոր Գին / Զեղչ (AMD)</label>
                 <input type="number" id="editProdSalePrice" placeholder="Թողնել դատարկ, եթե զեղչ չկա">
             </div>
+            <div class="edit-form-group">
+                <label>Առկայություն</label>
+                <div class="stock-toggle-group">
+                    <button class="stock-toggle-btn in-stock active" id="btnInStock">✓ Առկա է</button>
+                    <button class="stock-toggle-btn out-of-stock" id="btnOutOfStock">✕ Առկա չէ</button>
+                </div>
+            </div>
             <button id="saveProductBtn" class="btn-dark" style="width: 100%; margin-top: 10px;">Պահպանել Փոփոխությունները</button>
         </div>
     </div>
@@ -169,6 +162,19 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     let currentEditingKey = null;
+    let editInStock = true; // stock toggle state
+
+    // ─── Stock toggle buttons ─────────────────────────────────────────────────
+    document.getElementById('btnInStock').addEventListener('click', () => {
+        editInStock = true;
+        document.getElementById('btnInStock').classList.add('active');
+        document.getElementById('btnOutOfStock').classList.remove('active');
+    });
+    document.getElementById('btnOutOfStock').addEventListener('click', () => {
+        editInStock = false;
+        document.getElementById('btnOutOfStock').classList.add('active');
+        document.getElementById('btnInStock').classList.remove('active');
+    });
 
     // ─── Helper: image compress ───────────────────────────────────────────────
     function resizeAndCompressToBase64(file) {
@@ -198,7 +204,7 @@
         });
     }
 
-    // ─── SLIDER (փոքր քանակ, onValue մնում է ինչպես կա) ──────────────────────
+    // ─── SLIDER ───────────────────────────────────────────────────────────────
     const sliderRef = ref(db, 'slider');
     onValue(sliderRef, (snapshot) => {
         const data = snapshot.val() || {};
@@ -225,28 +231,25 @@
         } else { alert('Ընտրիր սլայդերի նկարը։'); }
     });
 
-
     // ─── PRODUCTS — Paginated Infinite Scroll ─────────────────────────────────
-    // Պահում ենք բոլոր load-ված ապրանքները local cache-ում
-    const productsCache = {};   // { key: productObject }
-    let productsOldestKey = null;   // pagination cursor (ամենահին ստացված key-ը)
+    const productsCache = {};
+    let productsOldestKey = null;
     let productsLoading = false;
     let productsAllLoaded = false;
     const PAGE_SIZE = 20;
 
-    // Render helper — ավելացնում է նոր card-եր list-ի ՎԵՐՋՈՒՄ
     function renderProductCards(items) {
         const list = document.getElementById('adminProductsList');
         items.forEach(({ key, p }) => {
-            const sizesPreview = p.sizes ? p.sizes.join(', ') + ' մլ' : 'Չկա';
             const pinnedLabel = p.pinned ? `<span style="background:#ff3b30; color:#fff; padding:2px 6px; border-radius:4px; font-size:10px;">TOP</span> ` : '';
+            const stockBadge = (p.inStock === false) ? `<span class="out-of-stock-badge">Առկա չէ</span>` : '';
             const card = document.createElement('div');
             card.className = 'item-card';
             card.id = `pcard-${key}`;
             card.innerHTML = `
                 <img src="${p.img}" width="80" style="object-fit: cover; height: 80px; border-radius: 6px;">
                 <div class="item-info">
-                    <h4>${pinnedLabel}${p.title}</h4>
+                    <h4>${pinnedLabel}${p.title}${stockBadge}</h4>
                     <p>${p.brand} [${p.gender || 'Unisex'}]</p>
                     <div class="item-details-preview"><b>Արժեք:</b> ${p.ml}մլ = ${p.price} AMD</div>
                 </div>
@@ -267,12 +270,20 @@
                 document.getElementById('editProdBrand').value = p.brand;
                 document.getElementById('editProdPrice').value = p.price;
                 document.getElementById('editProdSalePrice').value = p.salePrice || '';
+                // Stock toggle — default true եթե field գոյություն չունի
+                editInStock = (p.inStock !== false);
+                if (editInStock) {
+                    document.getElementById('btnInStock').classList.add('active');
+                    document.getElementById('btnOutOfStock').classList.remove('active');
+                } else {
+                    document.getElementById('btnOutOfStock').classList.add('active');
+                    document.getElementById('btnInStock').classList.remove('active');
+                }
                 document.getElementById('editProductModal').classList.add('active');
             });
         });
     }
 
-    // Firebase-ից քաշում ենք հաջորդ PAGE_SIZE ապրանքը
     async function loadMoreProducts() {
         if (productsLoading || productsAllLoaded) return;
         productsLoading = true;
@@ -280,10 +291,8 @@
 
         let q;
         if (productsOldestKey === null) {
-            // Առաջին load — վերջի 20-ը
             q = query(ref(db, 'products'), orderByKey(), limitToLast(PAGE_SIZE));
         } else {
-            // Հաջորդ load — cursor-ից առաջ
             q = query(ref(db, 'products'), orderByKey(), endBefore(productsOldestKey), limitToLast(PAGE_SIZE));
         }
 
@@ -299,12 +308,9 @@
             return;
         }
 
-        // Firebase-ը վերադարձնում է ascending order, մենք ուզում ենք newest → oldest
-        // ուստի reverse ենք անում
-        const sortedKeys = keys.sort(); // ascending (Firebase default)
-        productsOldestKey = sortedKeys[0]; // ամենա-հինը՝ հաջորդ cursor
+        const sortedKeys = keys.sort();
+        productsOldestKey = sortedKeys[0];
 
-        // Ավելացնում ենք cache-ին, render ենք անում newest-first
         const toRender = sortedKeys.reverse().map(key => {
             productsCache[key] = data[key];
             return { key, p: data[key] };
@@ -320,15 +326,11 @@
         productsLoading = false;
     }
 
-    // IntersectionObserver — products sentinel
     const productsObserver = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-            loadMoreProducts();
-        }
+        if (entries[0].isIntersecting) loadMoreProducts();
     }, { threshold: 0.1 });
     productsObserver.observe(document.getElementById('products-sentinel'));
 
-    // Նոր ապրանք ավելացնելիս — cache ու list թարմացնում ենք մանուալ
     document.getElementById('addProductBtn').addEventListener('click', async () => {
         const title = document.getElementById('prodTitle').value.trim();
         const brand = document.getElementById('prodBrand').value.trim();
@@ -343,18 +345,17 @@
             document.getElementById('prodLoading').style.display = 'block';
             const base64Img = await resizeAndCompressToBase64(file);
             const sizesArray = sizesRaw.split(',').map(s => Number(s.trim())).filter(s => !isNaN(s) && s > 0);
-            const newProd = { title, brand, ml: Number(ml), price: Number(price), salePrice: "", sizes: sizesArray, gender, img: base64Img, pinned: isPinned };
+            // Նոր ապրանքը սկզբնապես inStock: true
+            const newProd = { title, brand, ml: Number(ml), price: Number(price), salePrice: "", sizes: sizesArray, gender, img: base64Img, pinned: isPinned, inStock: true };
 
             const newRef = await push(ref(db, 'products'), newProd);
             const newKey = newRef.key;
 
-            // Ավելացնում ենք list-ի ՍԿԻԶԲ (ամենանոր)
             productsCache[newKey] = newProd;
             const list = document.getElementById('adminProductsList');
             const tempContainer = document.createElement('div');
             list.insertBefore(tempContainer, list.firstChild);
 
-            // Render the new card at top
             const pinnedLabel = isPinned ? `<span style="background:#ff3b30; color:#fff; padding:2px 6px; border-radius:4px; font-size:10px;">TOP</span> ` : '';
             const card = document.createElement('div');
             card.className = 'item-card';
@@ -383,6 +384,9 @@
                 document.getElementById('editProdBrand').value = brand;
                 document.getElementById('editProdPrice').value = price;
                 document.getElementById('editProdSalePrice').value = '';
+                editInStock = true;
+                document.getElementById('btnInStock').classList.add('active');
+                document.getElementById('btnOutOfStock').classList.remove('active');
                 document.getElementById('editProductModal').classList.add('active');
             });
 
@@ -393,7 +397,7 @@
         } else { alert('Լրացրու բոլոր դաշտերը!'); }
     });
 
-    // Edit save
+    // Edit save — inStock field-ը ևս պահում ենք
     document.getElementById('saveProductBtn').addEventListener('click', () => {
         if (currentEditingKey) {
             const title = document.getElementById('editProdTitle').value.trim();
@@ -402,15 +406,18 @@
             const salePriceRaw = document.getElementById('editProdSalePrice').value.trim();
             if (title && brand && price) {
                 update(ref(db, `products/${currentEditingKey}`), {
-                    title, brand, price: Number(price), salePrice: salePriceRaw !== "" ? Number(salePriceRaw) : ""
+                    title, brand,
+                    price: Number(price),
+                    salePrice: salePriceRaw !== "" ? Number(salePriceRaw) : "",
+                    inStock: editInStock
                 }).then(() => {
-                    // Թարմացնում ենք card-ի անվանումն ու բրենդը UI-ում
                     const card = document.getElementById(`pcard-${currentEditingKey}`);
                     if (card) {
                         const h4 = card.querySelector('h4');
                         if (h4) {
-                            const pinnedSpan = h4.querySelector('span');
-                            h4.innerHTML = (pinnedSpan ? pinnedSpan.outerHTML + ' ' : '') + title;
+                            const pinnedSpan = h4.querySelector('span.top-badge') || [...h4.querySelectorAll('span')].find(s => s.textContent === 'TOP');
+                            const stockBadge = editInStock ? '' : `<span class="out-of-stock-badge">Առկա չէ</span>`;
+                            h4.innerHTML = (pinnedSpan ? pinnedSpan.outerHTML + ' ' : '') + title + stockBadge;
                         }
                         const p = card.querySelector('.item-info p');
                         if (p) p.textContent = brand + ' [' + (productsCache[currentEditingKey]?.gender || 'Unisex') + ']';
@@ -420,6 +427,7 @@
                         productsCache[currentEditingKey].brand = brand;
                         productsCache[currentEditingKey].price = Number(price);
                         productsCache[currentEditingKey].salePrice = salePriceRaw !== "" ? Number(salePriceRaw) : "";
+                        productsCache[currentEditingKey].inStock = editInStock;
                     }
                     document.getElementById('editProductModal').classList.remove('active');
                     currentEditingKey = null;
@@ -433,18 +441,14 @@
         currentEditingKey = null;
     });
 
-
-    // ─── ORDERS — Paginated Infinite Scroll ───────────────────────────────────
+    // ─── ORDERS ───────────────────────────────────────────────────────────────
     let ordersOldestKey = null;
     let ordersLoading = false;
     let ordersAllLoaded = false;
-    let ordersTotalCount = 0; // badge-ի համար
 
-    // Badge-ի համար onValue (թեթև — միայն count)
     onValue(ref(db, 'orders'), (snapshot) => {
         const data = snapshot.val() || {};
-        ordersTotalCount = Object.keys(data).length;
-        document.getElementById('orders-badge').innerText = ordersTotalCount;
+        document.getElementById('orders-badge').innerText = Object.keys(data).length;
     });
 
     function renderOrderCards(items) {
@@ -460,7 +464,6 @@
                 <b style="color:#000;">${o.total} AMD</b>
                 <button class="btn-complete" id="del-o-${key}" style="float:right; background:#28a745; color:#fff; border:none; padding:5px 10px; cursor:pointer;">Ավարտել</button>`;
             list.appendChild(card);
-
             document.getElementById(`del-o-${key}`)?.addEventListener('click', () => {
                 remove(ref(db, `orders/${key}`));
                 document.getElementById(`ocard-${key}`)?.remove();
@@ -494,7 +497,6 @@
 
         const sortedKeys = keys.sort();
         ordersOldestKey = sortedKeys[0];
-
         const toRender = sortedKeys.reverse().map(key => ({ key, o: data[key] }));
         renderOrderCards(toRender);
 
@@ -507,27 +509,18 @@
         ordersLoading = false;
     }
 
-    // IntersectionObserver — orders sentinel
     const ordersObserver = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-            loadMoreOrders();
-        }
+        if (entries[0].isIntersecting) loadMoreOrders();
     }, { threshold: 0.1 });
     ordersObserver.observe(document.getElementById('orders-sentinel'));
 
-
-    // ─── TAB switching ────────────────────────────────────────────────────────
-    // Orders tab-ը մտնելիս — lazy load կատարում ենք եթե դեռ չի ստացվել
     let ordersTabInitialized = false;
-
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById(btn.dataset.tab).classList.add('active');
-
-            // Orders tab-ի առաջին բացելիս — trigger ենք load
             if (btn.dataset.tab === 'orders-tab' && !ordersTabInitialized) {
                 ordersTabInitialized = true;
                 loadMoreOrders();
@@ -535,9 +528,7 @@
         });
     });
 
-    // Products-ը load ենք անմիջապես (active tab է)
     loadMoreProducts();
-
 </script>
 </body>
 </html>
