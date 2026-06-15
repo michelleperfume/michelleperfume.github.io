@@ -492,7 +492,7 @@
                 const finalTotal = Number(document.getElementById('cartTotalSum').innerText);
                 push(ref(db, 'orders'), { name, phone, items: finalItemsString, total: finalTotal, date: currentDate }).then(() => {
                     sendEmailNotification(name, phone, finalItemsString, finalTotal, currentDate);
-                    alert('Ձեր զամբյուղի պատվերն ընդունված է։ Շնորհակալություն։Մեր աշխատակիցը շուտով կկապնվի ձեզ հետ');');
+                    alert('Ձեր զամբյուղի պատվերն ընդունված է։ Շնորհակալություն։Մեր աշխատակիցը շուտով կկապնվի ձեզ հետ');
                     cart = [];
                     updateCartUI();
                     document.getElementById('cartCustomerName').value = '';
