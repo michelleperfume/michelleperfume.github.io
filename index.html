@@ -157,7 +157,7 @@
                         <span style="font-weight: 600; color: #000;">AMD</span>
                     </div>
                 </div>
-                <span class="credit-hint">* ապառիկի ձևակերպում</span>
+                <span class="credit-hint">*  Գործում է ապառիկի ձևակերպում</span>
             </div>
             <input type="text" id="customerName" class="modal-input" placeholder="Ձեր Անունը...">
             <input type="tel" id="customerPhone" class="modal-input" placeholder="Ձեր Հեռախոսահամարը...">
@@ -177,7 +177,7 @@
                 <div class="price-label">Զամբյուղի Ընդհանուր Գումարը</div>
                 <span class="price-value" id="cartTotalSum">0</span> <span>AMD</span>
             </div>
-            <span class="credit-hint">* ապառիկի ձևակերպում</span>
+            <span class="credit-hint">* Գործում է ապառիկի ձևակերպում</span>
             <div id="cartOrderForm">
                 <input type="text" id="cartCustomerName" class="modal-input" placeholder="Ձեր Անունը...">
                 <input type="tel" id="cartCustomerPhone" class="modal-input" placeholder="Ձեր Հեռախոսահամարը...">
@@ -492,7 +492,7 @@
                 const finalTotal = Number(document.getElementById('cartTotalSum').innerText);
                 push(ref(db, 'orders'), { name, phone, items: finalItemsString, total: finalTotal, date: currentDate }).then(() => {
                     sendEmailNotification(name, phone, finalItemsString, finalTotal, currentDate);
-                    alert('Ձեր զամբյուղի պատվերն ընդունված է։ Շնորհակալություն։');
+                    alert('Ձեր զամբյուղի պատվերն ընդունված է։ Շնորհակալություն։Մեր աշխատակիցը շուտով կկապնվի ձեզ հետ');');
                     cart = [];
                     updateCartUI();
                     document.getElementById('cartCustomerName').value = '';
@@ -514,7 +514,7 @@
                 const orderItemInfo = `${selectedProduct.brand || ''} ${selectedProduct.title} (${finalMl} մլ) [${selectedProduct.gender || 'Unisex'}]`;
                 push(ref(db, 'orders'), { name, phone, items: orderItemInfo, total: Number(finalPrice), date: currentDate }).then(() => {
                     sendEmailNotification(name, phone, orderItemInfo, finalPrice, currentDate);
-                    alert('Ձեր պատվերն ընդունված է։ Շնորհակալություն գնումների համար:');
+                    alert('Ձեր պատվերն ընդունված է։ Շնորհակալություն գնումների համար:Մեր աշխատակիցը շուտով կկապնվի ձեզ հետ');
                     document.getElementById('customerName').value = '';
                     document.getElementById('customerPhone').value = '';
                     document.getElementById('orderModal').classList.remove('active');
@@ -566,7 +566,7 @@
 
 
 
-    // Այստեղ լինելու են քո մյուս ֆունկցիաները...
+    
 
     // Ահա որոնման ֆունկցիան
     function searchProducts() {
